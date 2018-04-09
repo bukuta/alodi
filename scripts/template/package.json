@@ -3,13 +3,13 @@
   "version":"<%=version%>",
   "description":"<%=description.split('\n').join(' ')%>",
   "scripts":{
-    "preview": "heimdallr preview dist/index.json",
-    "build": "heimdallr build",
-    "mock": "heimdallr mock",
-    "watch": "nodemon --exec 'heimdallr build'"
+    "preview": "alodi preview dist/index.json",
+    "build": "alodi build",
+    "mock": "alodi mock",
+    "watch": "nodemon --exec 'alodi build'"
   },
   "dependencies":{
-    "heimdallr": "1.0.0",
+    "alodi": "git+https://github.com/bukuta/alodi.git",
     "nodemon":"latest"
   }
 }

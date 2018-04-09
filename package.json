@@ -1,6 +1,6 @@
 {
-  "version": "1.0.1",
   "name": "alodi",
+  "version": "1.0.1",
   "description": "a tool for create/build/preview/mock openapi3.0 api docs",
   "author": "c7h12@126.com",
   "main": "index.js",

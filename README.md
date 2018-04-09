@@ -1,4 +1,4 @@
-# Heimdallr
+# alodi
 
 > This is a project same as swaggerui, with additional support of sorting and filtering
 > Make life better
@@ -9,10 +9,10 @@
 
 ## usage
 ```bash
-heimdallr preview dist/index.json # cli alone
+alodi preview dist/index.json # cli alone
 
-let heimdallr = require('heimdallr');
-let p = heimdallr.getStaticPath();
+let alodi = require('alodi');
+let p = alodi.getStaticPath();
 app.use('/preview',express.staticMiddleware(p));
 ```
 
