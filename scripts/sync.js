@@ -7,7 +7,7 @@ const readFile = util.promisify(fs.readFile);
 
 async function sync() {
   let c = new EasyMockClient({
-    host: 'http://10.95.55.5:7300',
+    host: process.env.HOST,
     username:process.env.EMUSERNAME,
     password:process.env.EMPASSWORD
   });

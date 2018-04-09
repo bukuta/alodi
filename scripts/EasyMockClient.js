@@ -111,43 +111,6 @@ class Client {
   }
 }
 
-//class API{
-  //async remove(){
-  //}
-  //async update(){
-  //}
-  //async emulate(){
-  //}
-//}
-//class Project{
-  //async getApis(){
-  //}
-  //async createApi(){
-  //}
-  //async delteApi(apiId){
-  //}
-  //async deleteApis(){
-  //}
-//}
-//class Team{
-  //async getProjects(){
-  //}
-  //async createProject(){
-  //}
-  //async addDevelop(){
-  //}
-  //async deleteDevelop(){
-  //}
-//}
-//class Developer{
-  //async login(){
-  //}
-  //async joinTeam(){
-  //}
-  //async leaveTeam(){
-  //}
-//}
-
 class EasyMockClient extends Client {
   constructor() {
     super(...arguments);

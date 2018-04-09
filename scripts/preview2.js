@@ -6,9 +6,9 @@ const debug = require('debug')('preview');
 const cwd = process.cwd();
 const heimdallr = require(path.resolve(__dirname, '../index.js'));
 
-const app = express();
 
 function run(specfile) {
+  const app = express();
   let port = process.env.PORT || 3000;
   let argv = process.argv;
   debug('port', port);

@@ -3,14 +3,26 @@ const path = require('path');
 const express = require('express');
 const pathToSwaggerUi = require('swagger-ui-dist').absolutePath();
 
-const app = express();
+const cwd = process.cwd();
 
-app.use(express.static(pathToSwaggerUi));
-app.use(express.static(path.join(__dirname,'../dist')));
+function run(){
 
-const port = process.env.PORT||3000
+  const app = express();
 
-app.listen(port,function(){
-  opn(`http://127.0.0.1:${port}?url=http://127.0.0.1:${port}/index.json`);
-});
+  app.use(express.static(pathToSwaggerUi));
+  app.use(express.static(path.join(cwd,'dist')));
 
+  const port = process.env.PORT||3000
+
+  app.listen(port,function(){
+    opn(`http://127.0.0.1:${port}?url=http://127.0.0.1:${port}/index.json`);
+  });
+
+}
+
+exports.run = run;
+
+
+if (require.main == module) {
+  run();
+}

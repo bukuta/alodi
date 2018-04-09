@@ -2,10 +2,13 @@ const debug = require('debug')('buildapi');
 const debug2 = require('debug')('postFix');
 const debug3 = require('debug')('error');
 const debug4 = require('debug')('pureXs');
+const debug5 = require('debug')('collectMocks');
+const debug6 = require('debug')('collectResponseMocks');
 const _ = require('lodash');
 const yaml = require('js-yaml');
 const util = require('util');
 const fs = require('fs');
+const fse = require('fs-extra');
 const path = require('path');
 
 const parseYAML = yaml.safeLoad;
@@ -35,27 +38,6 @@ async function getAllNodes(indir) {
       ...last,...current
     };
   }, {});
-  //debug('all:', all);
-  //console.log(contents);
-  return all;
-}
-
-async function getAllProtos(indir){
-  let files = await readdir(indir);
-  let filteredFiles = files.map(file => {
-    let realpath = path.join(indir, file);
-    debug(realpath);
-    return realpath;
-  }).filter(file => path.extname(file) == '.proto');
-  let objects = await Promise.all(filteredFiles.map((file)=>{return readFile(file,'utf-8')}));
-  //debug('objects:', objects.length, objects);
-  let all = {};
-  let srcpath = path.resolve(__dirname,'../src/components/x-protos/');
-  filteredFiles.forEach((file,index)=>{
-    let relativepath = path.relative(srcpath,file);
-    debug('relativepath',relativepath);
-    all[relativepath]=objects[index];
-  })
   //debug('all:', all);
   //console.log(contents);
   return all;
@@ -167,6 +149,150 @@ function omitKeys(main) {
   });
 }
 
+function collectMocks(schemas, root) {
+  //
+  let r = {};
+  for (let name in schemas) {
+    let tmp = collectMocksFromEntity(schemas[name], root);
+    if (tmp && Object.keys(tmp).length) {
+      if (tmp.type == 'enum') {
+        r[name + '|1'] = tmp.mock;
+      } else if (tmp.type == 'array') {
+        r[name + '|1-10'] = tmp.mock;
+      } else {
+        r[name] = tmp.mock;
+      }
+    }
+  }
+  return r;
+}
+function collectMocksFromEntity(schema, root) {
+  let properties = schema.properties;
+  let r = {};
+  let type = '';
+  if (properties) {
+    // object
+    for (let name in properties) {
+      let value = properties[name];
+      if (value.hasOwnProperty('x-mock')) {
+        r[name] = value['x-mock'];
+      } else if (value.hasOwnProperty('$ref')) {
+        //debug5(name, value)
+        let node = pickNode(root, value['$ref']);
+        //debug5(node);
+        let m = collectMocksFromEntity(node, root);
+        if (m.type == 'enum') {
+          r[name + '|1'] = m.mock;
+        } else {
+          r[name] = m.mock;
+        }
+      } else if (value.type == 'object') {
+        //debug5('object', value);
+        let m = collectMocksFromEntity(value, root);
+        if (m.type == 'enum') {
+          r[name + '|1'] = m;
+        } else if (m.type == 'array') {
+          r[name + '|1-10'] = m;
+        }
+      } else if (value.type == 'array') {
+        debug5('array', value);
+        let items = value.items;
+        if (items.oneOf) {
+          items = items.oneOf;
+          debug5('oneOf', items);
+        } else if (items.allOf) {
+          items = items.allOf;
+          debug5('allOf', items);
+        } else if (items.anyOf) {
+          items = items.anyOf;
+          debug5('anyOf', items);
+        } else {
+          items = [value.items];
+        }
+        let m = items.map(item => collectMocksFromEntity({
+          properties: {
+            items: item
+          }
+        }, root).mock.items);
+        type = 'array';
+        r[name + '|1-10'] = m;
+      }
+    }
+  } else {
+    // refs/enum
+    if (schema.hasOwnProperty('x-mock')) {
+      r = schema['x-mock'];
+    } else if (schema.hasOwnProperty('enum')) {
+      r = schema['enum'];
+      type = 'enum';
+    }
+  }
+  return {
+    type,
+    mock: r
+  };
+}
+function collectMocksFromResponse(response, statusCode, root) {
+  let content = response && response.content && response.content['application/json'];
+  let m;
+  if (content) {
+    content = content.schema;
+    debug6('collectMocksFromResponse', content);
+    if (content.hasOwnProperty('$ref')) {
+      let node = pickNode(root, content['$ref']);
+      debug6('collectMocksFromResponse', node);
+      if (statusCode == 200) {
+        m = collectMocksFromEntity(node, root).mock;
+      } else {
+        m = {
+          _res: {
+            status: statusCode,
+            data: collectMocksFromEntity(node, root).mock,
+          }
+        };
+      }
+    } else {
+      m = collectMocksFromEntity(content, root).mock;
+    }
+  }
+  if (!m && response.description) {
+    m = {
+      _res: {
+        status: statusCode,
+        data: {
+        }
+      }
+    };
+  }
+  debug6('collectMocksFromEntity.result', m);
+  return m;
+}
+
+function collectResponseMocks(paths, root) {
+  //
+  let r = {};
+  for (let name in paths) {
+    let methods = paths[name];
+    r[name] = {};
+    Object.keys(methods).map(method => {
+      let mock = r[name][method] = {};
+      let responses = methods[method].responses;
+
+      let code2xx = Object.keys(responses).filter(statusCode => +statusCode < 300 && +statusCode >= 200)[0];
+      debug6(method, name, code2xx);
+
+      Object.keys(responses).map(statusCode => {
+        mock[statusCode] = {
+          description: methods[method].description,
+          mock: collectMocksFromResponse(responses[statusCode], +statusCode, root),
+        };
+      });
+      debug6(mock[code2xx]);
+    });
+  }
+  return r;
+}
+
 async function run() {
   try {
     let main = await parseYamlFile(path.join(projectRoot,'src/main.yaml'));
@@ -175,8 +301,6 @@ async function run() {
     let requestBodies = await getAllNodes(path.join(projectRoot,'src/components/requestBodies'));
     let responses = await getAllNodes(path.join(projectRoot,'src/components/responses'));
     let tags = await parseYamlFile(path.join(projectRoot,'src/tags.yaml'));
-    let protos = await getAllProtos(path.join(projectRoot,'src/components/x-protos'));
-    debug('protos',protos);
 
     main.tags = tags.tags;
     main.paths = paths;
@@ -184,20 +308,35 @@ async function run() {
       schemas,
       requestBodies,
       responses,
-      'x-protos': protos,
     };
     postFix(main, main);
     omitKeys(main);
     await pureXs(main.paths, main);
+
+    await fse.ensureFile(path.join(projectRoot,`dist/index.json`));
+
     await writeFile(path.join(projectRoot,`dist/index.json`), JSON.stringify(main, 0, 2), 'utf-8');
 
     let content = stringifyYAML(main);
+
+    await fse.ensureFile(path.join(projectRoot,`dist/index.yaml`));
     await writeFile(path.join(projectRoot,`dist/index.yaml`), content, 'utf-8');
+
+    let mocks = collectMocks(main.components.schemas, main)
+
+    await fse.ensureFile(path.join(projectRoot,`dist/mock.schemas.json`));
+    await writeFile(path.join(projectRoot,`dist/mock.schemas.json`), JSON.stringify(mocks, 0, 2), 'utf-8');
+
+    let mockresponses = collectResponseMocks(main.paths, main);
+    await fse.ensureFile(path.join(projectRoot,`dist/mock.responses.json`));
+    await writeFile(path.join(projectRoot,`dist/mock.responses.json`), JSON.stringify(mockresponses, 0, 2), 'utf-8');
   } catch (e) {
     console.log(e);
   }
 }
-process.on('exit', function(err) {
-  console.log(err);
-})
-run();
+
+exports.run = run;
+
+if(require.main==module){
+  run();
+}
