@@ -25,7 +25,7 @@ import {mapGetters, mapState} from 'vuex';
 
 
 export default {
-  name: 'api-list',
+  name: 'tags',
   props:[
     'apis',
   ],

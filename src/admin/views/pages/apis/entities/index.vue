@@ -103,7 +103,7 @@ import GenerationCreator from '$pages/generations/detail/creator';
 import {MessageBox} from 'element-ui';
 
 export default {
-  name: 'api-list',
+  name: 'entities',
   props:[
     'apis',
   ],
