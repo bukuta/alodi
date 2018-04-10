@@ -1,11 +1,10 @@
 const Mock = require('mockjs');
 const path = require('path');
-const protobuf = require('protobufjs');
 
 const express = require('express');
 const httpProxy = require('http-proxy');
 const pathToRegexp = require('path-to-regexp')
-const collector = require('../helper/collector.js')
+const collector = require('../../helper/collector.js')
 
 const storageService = require('./storage');
 
@@ -208,43 +207,6 @@ function passProxy({proxy, host, reg, res, headers}) {
   });
 }
 
-function getResponseProtoType(response,root){
-  debug('getResponseProto',response);
-  let schema = response&&response.content&&response.content['application/json'].schema;
-  debug('getResponseProto',schema);
-  if(schema.type=='object'&&schema.$ref){
-    let obj = collector.pickNode(root,schema.$ref);
-    debug('ref',obj);
-    let protofileref = obj['x-$proto'];
-    debug('ref',protofileref);
-    if(protofileref){
-      let content = collector.pickNode(root,protofileref);
-      debug('proto',content);
-      let protoroot = new protobuf.Root();
-      let r = protobuf.parse(content,protoroot);
-      if(r.imports){
-        for(var file of r.imports){
-          debug('need.imports',file);
-          let parsed = path.parse(protofileref);
-          parsed.base = file;
-          let realfile = path.normalize(path.format(parsed));
-          debug('need.imports',file,realfile);
-          let content = collector.pickNode(root,realfile);
-          content = content.toString();
-          debug('need.imports',realfile);
-          protobuf.parse(content,protoroot);
-        }
-      }
-      var typename = path.parse(protofileref).name;
-      typename = typename[0].toUpperCase()+typename.slice(1);
-      debug('typename',typename);
-      var Type = protoroot.lookup(typename);
-      debug('type',Type);
-      return Type;
-    }
-  }
-}
-
 function localResponse(match, req, res) {
   let rd = responseDecorations[match.path];
   let skipcode = {};
@@ -290,22 +252,6 @@ function localResponse(match, req, res) {
       data = data.mock;
     }
     debug(data);
-    if(req.query.proto){
-      debug('needproto',req.query);
-      let protoType = getResponseProtoType(response,rootspec);
-      debug('protoType',protoType);
-      if(protoType){
-        let message = protoType.create(data);
-        let buf = protoType.encode(message).finish();
-        debug('buf',message,buf);
-        res.set('Content-Type','application/x-proto');
-        res.write(buf);
-        return res.end();
-      }
-    }
-    if(req.headers['accept'].indexOf('application/x-proto')){
-      debug('need.protobuf');
-    }
     res.json(data);
   } else {
     res.end(response.description);

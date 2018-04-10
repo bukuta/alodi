@@ -9,6 +9,7 @@ const createUtil = require('../scripts/create.js');
 const buildUtil = require('../scripts/build.js');
 const previewUtil = require('../scripts/preview.js');
 const preview2Util = require('../scripts/preview2.js');
+const mockUtil = require('../scripts/mock');
 
 debug('init');
 
@@ -50,6 +51,7 @@ program.command('mock')
   .description('run mock server')
   .action(function(env, options) {
     debug('mock');
+    mockUtil.run();
   });
 
 program.parse(process.argv);
