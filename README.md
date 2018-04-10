@@ -9,14 +9,15 @@
 
 ## usage
 ```bash
-alodi preview dist/index.json # cli alone
+# 全局安装
+npm install -g git@git.skyeye.world:NGSOC-FE/alodi-sdk.git
 
-let alodi = require('alodi');
-let p = alodi.getStaticPath();
-app.use('/preview',express.staticMiddleware(p));
+PORT=3332 alodi preview dist/index.json # cli alone
+PORT=3333 alodi mock
+
 ```
 
-## Start
+## develop
 
  - Clone or download this repository
  - Enter your local directory, and install dependencies:
@@ -27,13 +28,12 @@ yarn
 npm install
 ```
 
-## Scripts
+### Scripts
 
-``` bash
+``` javascript
 "scripts": {
   "dev": "node build/dev-server.js",
-  "build": "node build/build.js",
-  "lint": "eslint --fix --ext .js,.vue src"
+  "build": "node build/build.js"
 },
 ```
 
