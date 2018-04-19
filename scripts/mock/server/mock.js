@@ -55,80 +55,6 @@ function matchPath(responses, req, method) {
   }
 }
 
-async function setupMock(app) {
-  let projectJson = require('../../package.json');
-  let mockConfig = projectJson.mockConfig || {};
-
-  // 本地mock
-  let router = await setupMockByDocs();
-  if (mockConfig.prefix) {
-    app.use(mockConfig.prefix, router);
-  } else {
-    app.use(router);
-  }
-
-  proxy.on('error', function(e) {
-    debug('proxy.error', e);
-  });
-
-  proxy.on('proxyReq', function(proxyReq, req, res, option) {
-    //debug(' Request from the target', JSON.stringify(req.headers, true, 2));
-    debug_cookie('Proxy Request ', option);
-    debug_cookie('Proxy Request ', JSON.stringify(req.headers, 0, 2));
-    if (req.headers.cookie) {
-      let rcookies = modifyCookieDomain(req.headers.cookie.split(';'), option.headers.Host);
-      //debug_cookie('modify.request.cookie.before',req.headers.ccookie);
-      //debug_cookie('modify.request.cookie',rcookies);
-      //option.headers['cookie']=rcookies;
-    }
-  });
-  proxy.on('proxyRes', function(proxyRes, req, res) {
-    //debug('RAW Response from the target', JSON.stringify(req.headers, true, 2));
-    debug_cookie('RAW Response from the target', JSON.stringify(proxyRes.headers, 0, 2));
-    for (let [name, value] of Object.entries(proxyRes.headers)) {
-      //debug('response.header',item);
-      if (name == 'set-cookie') {
-        debug_cookie('response.header', name, value);
-        //let cookies = modifyCookieDomain(value,'127.0.0.1');
-        //debug_cookie('modify.respone.cookie',cookies);
-        //proxyRes.headers[name]=cookies;
-      }
-    }
-  });
-  if (!mockConfig.prefix) {
-    debug('mockConfig.prefix needed');
-    throw new Error('mockConfig.prefix needed');
-  }
-
-  // 本地无法处理的请求，透传到package.json中定义的proxy后端
-  app.use(mockConfig.prefix, function(req, res, next) {
-    debug('proxy', req.url, req.path);
-
-    // default host
-    let target = mockConfig.proxy;
-    let host = url.parse(target).hostname;
-    //req.url = path.join(url.parse(target).path,req.originUrl||req.url);
-
-    proxy.web(req, res, {
-      target: target,
-      headers: {
-        host,
-        'Accept': 'application/json, */*',
-        'Content-Type': 'application/json'
-      }
-    }, function(err, preq, pres, url) {
-      debug('proxy.callback', err);
-      if (err) {
-        res.status(400)
-        res.send(JSON.stringify(url));
-        res.end(JSON.stringify(err));
-      } else {
-        //pres.pipe(res);
-        res.json(url);
-      }
-    });
-  });
-}
 
 let responses={};
 let rootspec;
@@ -136,9 +62,6 @@ let responseDecorations;
 let currentServer;
 
 async function setupMockByDocs() {
-  //let content = await readFile(path.join(process.cwd(), 'dist/index.json'));
-  //let root = JSON.parse(content);
-  //rootspec = root;
   rootspec = await storageService.getSpecs();
   responseDecorations = await storageService.getDecorations();
   currentServer = await storageService.getCurrentServer();
@@ -176,7 +99,6 @@ async function setupMockByDocs() {
       };
     }
   }
-  return router;
 }
 
 function passProxy({proxy, host, reg, res, headers}) {
@@ -343,7 +265,15 @@ setupMockByDocs();
 // 查看currentServer, 如果为本地，使用本地mock,如果本地mock无法匹配，next()
 // 如果为特定http服务器，使用proxy
 // 如果有
-router.use(handleMock);
+
+let projectJson = require(path.resolve(process.cwd(),'package.json'));
+let mockConfig = projectJson.mockConfig || {};
+
+if(mockConfig.prefix){
+  router.use(mockConfig.prefix,handleMock);
+}else{
+  router.use(handleMock);
+}
 
 module.exports = {
   router,
