@@ -16,6 +16,7 @@ const stringifyYAML = yaml.safeDump;
 const readdir = util.promisify(fs.readdir);
 const readFile = util.promisify(fs.readFile);
 const writeFile = util.promisify(fs.writeFile);
+const fileStat = util.promisify(fs.stat);
 
 const projectRoot = process.cwd();
 
@@ -25,21 +26,39 @@ async function parseYamlFile(file) {
   return obj;
 }
 
-async function getAllNodes(indir) {
+async function isDir(path) {
+  let stat = await fileStat(path);
+  return stat.isDirectory();
+}
+
+async function getAllFiles(indir) {
   let files = await readdir(indir);
-  let objects = await Promise.all(files.map(file => {
-    let realpath = path.join(indir, file);
-    debug(realpath);
-    return realpath;
-  }).filter(file => path.extname(file) == '.yaml').map(parseYamlFile));
-  //debug('objects:', objects.length, objects);
+  files = files.map(file => path.join(indir, file));
+  let rs = [];
+
+  await Promise.all(files.map(async function(file) {
+    let isdir = await isDir(file);
+    if (isdir) {
+      let files = await getAllFiles(file);
+      rs = [...rs, ...files];
+    } else {
+      rs.push(file);
+    }
+  }));
+  return rs;
+}
+
+async function getAllNodes(indir) {
+  let files = await getAllFiles(indir);
+  debug('allfiles', files);
+
+  let objects = await Promise.all(files.filter(file => path.extname(file) == '.yaml').map(parseYamlFile));
+
   let all = objects.reduce((last, current) => {
     return {
       ...last,...current
     };
   }, {});
-  //debug('all:', all);
-  //console.log(contents);
   return all;
 }
 
@@ -127,10 +146,12 @@ function pickNode(root, keypath) {
 
   return node;
 }
+
 function isTemplateRef(key) {
   let r = /^@#.*/.test(key);
   return r;
 }
+
 function isTemplateParams(key) {
   let r = /^@.*/.test(key);
   return r;
@@ -150,7 +171,6 @@ function omitKeys(main) {
 }
 
 function collectMocks(schemas, root) {
-  //
   let r = {};
   for (let name in schemas) {
     let tmp = collectMocksFromEntity(schemas[name], root);
@@ -295,12 +315,12 @@ function collectResponseMocks(paths, root) {
 
 async function run() {
   try {
-    let main = await parseYamlFile(path.join(projectRoot,'src/main.yaml'));
-    let paths = await getAllNodes(path.join(projectRoot,'src/paths'));
-    let schemas = await getAllNodes(path.join(projectRoot,'src/components/schemas'));
-    let requestBodies = await getAllNodes(path.join(projectRoot,'src/components/requestBodies'));
-    let responses = await getAllNodes(path.join(projectRoot,'src/components/responses'));
-    let tags = await parseYamlFile(path.join(projectRoot,'src/tags.yaml'));
+    let main = await parseYamlFile(path.join(projectRoot, 'src/main.yaml'));
+    let paths = await getAllNodes(path.join(projectRoot, 'src/paths'));
+    let schemas = await getAllNodes(path.join(projectRoot, 'src/components/schemas'));
+    let requestBodies = await getAllNodes(path.join(projectRoot, 'src/components/requestBodies'));
+    let responses = await getAllNodes(path.join(projectRoot, 'src/components/responses'));
+    let tags = await parseYamlFile(path.join(projectRoot, 'src/tags.yaml'));
 
     main.tags = tags.tags;
     main.paths = paths;
@@ -313,23 +333,23 @@ async function run() {
     omitKeys(main);
     await pureXs(main.paths, main);
 
-    await fse.ensureFile(path.join(projectRoot,`dist/index.json`));
+    await fse.ensureFile(path.join(projectRoot, `dist/index.json`));
 
-    await writeFile(path.join(projectRoot,`dist/index.json`), JSON.stringify(main, 0, 2), 'utf-8');
+    await writeFile(path.join(projectRoot, `dist/index.json`), JSON.stringify(main, 0, 2), 'utf-8');
 
     let content = stringifyYAML(main);
 
-    await fse.ensureFile(path.join(projectRoot,`dist/index.yaml`));
-    await writeFile(path.join(projectRoot,`dist/index.yaml`), content, 'utf-8');
+    await fse.ensureFile(path.join(projectRoot, `dist/index.yaml`));
+    await writeFile(path.join(projectRoot, `dist/index.yaml`), content, 'utf-8');
 
     let mocks = collectMocks(main.components.schemas, main)
 
-    await fse.ensureFile(path.join(projectRoot,`dist/mock.schemas.json`));
-    await writeFile(path.join(projectRoot,`dist/mock.schemas.json`), JSON.stringify(mocks, 0, 2), 'utf-8');
+    await fse.ensureFile(path.join(projectRoot, `dist/mock.schemas.json`));
+    await writeFile(path.join(projectRoot, `dist/mock.schemas.json`), JSON.stringify(mocks, 0, 2), 'utf-8');
 
     let mockresponses = collectResponseMocks(main.paths, main);
-    await fse.ensureFile(path.join(projectRoot,`dist/mock.responses.json`));
-    await writeFile(path.join(projectRoot,`dist/mock.responses.json`), JSON.stringify(mockresponses, 0, 2), 'utf-8');
+    await fse.ensureFile(path.join(projectRoot, `dist/mock.responses.json`));
+    await writeFile(path.join(projectRoot, `dist/mock.responses.json`), JSON.stringify(mockresponses, 0, 2), 'utf-8');
   } catch (e) {
     console.log(e);
   }
@@ -337,6 +357,6 @@ async function run() {
 
 exports.run = run;
 
-if(require.main==module){
+if (require.main == module) {
   run();
 }
