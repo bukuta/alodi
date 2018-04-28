@@ -25,7 +25,6 @@
               </el-table-column>
               <el-table-column
                 label="description"
-                width="180"
                 >
                 <template scope="scope">
                   {{scope.row[1].description}}
@@ -33,7 +32,7 @@
               </el-table-column>
               <el-table-column
                 label="type"
-                width="180"
+                width="120"
                 >
                 <template scope="scope">
                   {{scope.row[1].type}}
@@ -41,6 +40,7 @@
               </el-table-column>
               <el-table-column
                 label="mock"
+                width="120"
                 >
                 <template scope="scope">
                   <!--{{apis.collectionMock(scope.row[1],scope.row[0])}}-->
@@ -55,12 +55,12 @@
       <el-table-column
         prop="name"
         label="Name"
-        width="180"
         >
       </el-table-column>
       <el-table-column
         prop="type"
         label="TYPE"
+        width="180"
         >
       </el-table-column>
       <el-table-column
@@ -71,6 +71,7 @@
       <el-table-column
         label="properties"
         class="api-summary"
+        width="180"
         >
         <template scope="scope">
           <span >
