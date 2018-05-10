@@ -1,5 +1,5 @@
 const EasyMockClient = require('./EasyMockClient.js');
-const debug = require('debug')('sync');
+const debug = require('debug')('alodi:sync');
 const fs = require('fs');
 const path = require('path');
 const util = require('util');

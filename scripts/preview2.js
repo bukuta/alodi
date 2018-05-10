@@ -2,7 +2,7 @@
 const path = require('path');
 const opn = require('opn');
 const express = require('express');
-const debug = require('debug')('preview');
+const debug = require('debug')('alodi:preview');
 const cwd = process.cwd();
 const heimdallr = require(path.resolve(__dirname, '../index.js'));
 

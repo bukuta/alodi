@@ -12,7 +12,7 @@ const path = require('path');
 const fse = require('fs-extra');
 const inquirer = require('inquirer');
 const _ = require('lodash');
-const debug = require('debug')('create');
+const debug = require('debug')('alodi:create');
 
 
 const cwd = process.cwd();

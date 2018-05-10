@@ -2,7 +2,7 @@
 
 const program = require('commander');
 const path = require('path');
-const debug = require('debug')('cli');
+const debug = require('debug')('alodi:bin');
 const child_process = require('child_process');
 
 const createUtil = require('../scripts/create.js');
@@ -10,6 +10,7 @@ const buildUtil = require('../scripts/build.js');
 const previewUtil = require('../scripts/preview.js');
 const preview2Util = require('../scripts/preview2.js');
 const mockUtil = require('../scripts/mock');
+const generateUtil = require('../scripts/generate');
 
 debug('init');
 
@@ -18,8 +19,6 @@ program.version('1.0.0')
   .description('create default docs with openapi3.0 specs')
   .action(function(env, options) {
     debug('create');
-    //debug('env',env)
-    //debug('options',options)
     createUtil.run();
   });
 
@@ -52,6 +51,13 @@ program.command('mock')
   .action(function(env, options) {
     debug('mock');
     mockUtil.run();
+  });
+
+program.command('generate')
+  .description('generate collection/models')
+  .action(function(env, options) {
+    debug('generate');
+    generateUtil.run();
   });
 
 program.parse(process.argv);
