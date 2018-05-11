@@ -1,7 +1,7 @@
 /**
  *  generate by Alodi <%=new Date()%>
  */
-import {rpc,Model} from 'yarr';
+import {rpc,Model} from 'ya-srr';
 
 class <%=modelName%>Model extends Model{
   constructor({url}){

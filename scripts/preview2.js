@@ -1,39 +1,40 @@
-#!/usr/bin/env node
 const path = require('path');
 const opn = require('opn');
 const express = require('express');
 const debug = require('debug')('alodi:preview');
+
 const cwd = process.cwd();
-const heimdallr = require(path.resolve(__dirname, '../index.js'));
+const pathToAlodi = require(path.resolve(__dirname, '../index.js')).absolutePath();
 
 
 function run(specfile) {
   const app = express();
   let port = process.env.PORT || 3000;
-  let argv = process.argv;
   debug('port', port);
 
-  if (!specfile) {
+  let normalizefile,
+    realspecfile;
+
+  if (specfile) {
     console.error('no spec file find');
-    process.exit(-1);
+    normalizefile = path.join('/', path.normalize(specfile));
+    realspecfile = path.resolve(path.join(cwd, specfile));
+    app.get(normalizefile, function(req, res) {
+      debug('sendFile', req.path);
+      res.sendFile(realspecfile);
+    });
   }
 
-  let normalizefile = path.join('/', path.normalize(specfile));
-  let realspecfile = path.resolve(path.join(cwd, specfile));
+  app.use(express.static(pathToAlodi));
+  app.use(express.static(path.join(cwd, 'dist')));
 
-  let staticPath = heimdallr.absolutePath();
-  debug('staticPath', staticPath);
-
-
-  app.get(normalizefile, function(req, res) {
-    debug('sendFile', req.path);
-    res.sendFile(realspecfile);
-  });
-  app.use(express.static(staticPath));
-  app.use(express.static(path.join(cwd,'dist')));
 
   app.listen(port, function() {
-    opn(`http://127.0.0.1:${port}?url=${normalizefile}`);
+    if (specfile) {
+      opn(`http://127.0.0.1:${port}?url=${normalizefile}`);
+    } else {
+      opn(`http://127.0.0.1:${port}?url=http://127.0.0.1:${port}/index.json`);
+    }
   });
 }
 
