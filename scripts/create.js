@@ -18,26 +18,32 @@ const debug = require('debug')('alodi:create');
 const cwd = process.cwd();
 
 async function getParams() {
+  let defaultName = path.basename(process.cwd());
+
   let answers = await inquirer.prompt([
     {
       type: 'input',
       name: 'name',
+      default: defaultName,
       message: 'the name of the project ',
     },
     {
       type: 'input',
       name: 'version',
+      default: "1.0.0",
       message: 'the version of the docs ',
     },
     {
       type: 'input',
       name: 'title',
+      default: defaultName,
       message: 'the title of the project ',
     },
     {
       type: 'editor',
       name: 'description',
       message: 'the description of the project ',
+      default: `api docs of ${defaultName}`,
     },
   ])
   debug('answers', answers);

@@ -1,0 +1,195 @@
+const debug = require('debug')('app');
+import React, { Component } from 'react';
+import blessed from 'blessed';
+import { render } from 'react-blessed';
+
+const style = {
+  selected: {
+    //border: {
+      //type: 'line',
+    //},
+    style: {
+      bg: 'black',
+      fg: 'white',
+      color: 'red'
+      //border: {
+        //fg: 'blue',
+      //}
+    }
+  }
+}
+
+class App extends Component {
+  constructor() {
+    super(...arguments);
+    this.state = {
+      paths: [
+        {
+          path: '/users',
+          method: 'get',
+          tags: [{
+            name: 'User',
+          }, {
+            name: 'Admin'
+          }],
+          summary: 'fetch users',
+          descriptions: 'fetch users',
+          parameters: [
+            {
+              name: 'page',
+              in: 'query',
+            }
+          ],
+          responses: {
+            200: {
+              description: 'ok',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      total: {
+                        type: 'integer',
+                        'x-mock': '@integer(0,1000)',
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+        },
+        {
+          path: '/users',
+          method: 'post',
+          tags: [{
+            name: 'User',
+          }, {
+            name: 'Admin'
+          }],
+          summary: 'fetch users',
+          descriptions: 'fetch users',
+          parameters: [
+            {
+              name: 'page',
+              in: 'query',
+            }
+          ],
+          responses: {
+            200: {
+              description: 'ok',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      total: {
+                        type: 'integer',
+                        'x-mock': '@integer(0,1000)',
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+        },
+      ],
+      current: 1,
+    };
+    //setInterval(()=>{
+      ////debug('current',this.state.current);
+      //this.setState({current:(this.state.current+1)%2})
+    //},1000);
+  }
+  onKeyDown(e){
+    debug(e);
+
+    let current = this.state.current+1;
+    if(current>this.state.paths.length-1){
+      current = 0;
+    }
+
+    this.setState({current});
+  }
+
+  componentDidMount(){
+    this.refs.list.focus();
+  }
+  render() {
+    let current = this.state.current;
+    let lines = this.state.paths.map((item, index) => {
+      return item.method + ':' + item.path;
+    });
+    let list = <list
+    items={lines}
+    keys={true}
+    mouse={true}
+    vi={true}
+    style={{
+            item: { fg: 'black' },
+            selected: { fg: 'white', bg: 'black' },
+          }} />;
+    return (
+      <box top="top"
+      ref="list"
+      left="50%"
+      width="50%"
+      keys
+      height="100%"
+      label="apis"
+      onKeyPress={this.onKeyDown.bind(this)}
+      border={{
+        type: 'line'
+      }}
+      style={{
+        border: {
+          fg: 'blue'
+        }
+      }}>
+           {list}
+           <box height={1} top={10} content="{green-bg}}hello{/green-bg}"></box>
+      </box>
+      );
+  }
+
+  render_() {
+    let current = this.state.current;
+    let lines = this.state.paths.map((item, index) => {
+      let classNames = [index==current? style.selected : {}];
+      return (
+        <box class={classNames}
+          key={item.method + item.path}
+          top={index}
+          height={1}
+          >
+          {item.method + ':' + item.path}
+        </box>
+        );
+    });
+    return (
+      <box top="top"
+      ref="list"
+      left="50%"
+      width="50%"
+      keys
+      height="100%"
+      label="apis"
+      onKeyPress={this.onKeyDown.bind(this)}
+      border={{
+        type: 'line'
+      }}
+      style={{
+        border: {
+          fg: 'blue'
+        }
+      }}>
+           {lines}
+           <box height={1} top={10} content="{green-bg}}hello{/green-bg}"></box>
+      </box>
+      );
+  }
+}
+
+
+export default App;

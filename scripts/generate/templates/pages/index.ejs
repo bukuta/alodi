@@ -1,0 +1,223 @@
+<template>
+  <div class="page page-agents">
+    <el-row>
+      坐席列表
+    </el-row>
+    <el-form :inline="true" size="mini" :model="filters" class="form-inline">
+      <el-form-item label="过滤">
+        <el-input v-model="filters.name" placeholder="姓名"></el-input>
+      </el-form-item>
+      <el-form-item >
+        <el-select v-model="filters.group" placeholder="分组">
+          <el-option label="预催" value="advance"></el-option>
+          <el-option label="M1" value="m1"></el-option>
+        </el-select>
+      </el-form-item>
+      <el-form-item>
+        <el-button type="primary" @click="onSearch">查询</el-button>
+        <el-button type="primary" @click="onCreate">添加</el-button>
+      </el-form-item>
+    </el-form>
+
+    <el-row>
+      <el-table
+        :data="items"
+        border
+        size="small"
+        :resizable="false"
+        style="width: 100%">
+        <el-table-column
+          fixed
+          prop="username"
+          label="账号"
+          width="150">
+        </el-table-column>
+        <el-table-column
+          prop="realname"
+          label="姓名"
+          width="120">
+        </el-table-column>
+        <el-table-column
+          prop="mobile"
+          label="手机号"
+          width="120">
+        </el-table-column>
+        <el-table-column
+          prop="address"
+          label="大区"
+          >
+        </el-table-column>
+        <el-table-column
+          prop="group"
+          label="分组"
+          >
+        </el-table-column>
+        <el-table-column
+          label="状态"
+          align="center"
+          width="80">
+          <template slot-scope="scope">
+            <el-tag v-if="scope.row.status" type="danger">禁用</el-tag>
+            <el-tag v-else>正常</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column
+          fixed="right"
+          label="操作"
+          align="center"
+          width="150">
+          <template slot-scope="scope">
+            <el-button @click="onDetail(scope.row)" type="text" size="small">查看</el-button>
+            <el-button @click="onDelete(scope.row)" type="text" size="small">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-row>
+    <el-row style="text-align:right;">
+      <el-pagination
+        @size-change="onSizeChange"
+        @current-change="onCurrentChange"
+        :current-page="currentPage"
+        :page-sizes="[20, 50, 100]"
+        :page-size="pageSize"
+        layout="total, sizes, prev, pager, next, jumper"
+        :total="total">
+      </el-pagination>
+    </el-row>
+    <router-view @change="onChange" @delete="onDelete">
+    </router-view>
+  </div>
+</template>
+
+
+<script>
+
+import { Agents } from '$domains/Agents';
+import {create} from '$views/util';
+
+import {AgentDetail} from './detail/index.vue';
+
+import creator from '$mould/helper/dialog-creator.js';
+import Agent from '$services/defines/agent/entity.js';
+import CreateShape from '$services/defines/agent/shapes/create.js';
+
+export default {
+  name: 'agents',
+  components:{
+  },
+
+
+  data(){
+    return {
+      items: [],
+
+      // pagination:
+      currentPage:0,
+      pageSize:20,
+      total: 0,
+
+      filters:{
+        name:'',
+        group:'M1',
+      },
+    };
+  },
+
+  methods:{
+    async fetchItems(){
+      this.collection.pageSize = this.pageSize;
+      this.collection.page = this.currentPage;
+      this.collection.setParams({...this.filters})
+
+      let {total,items} = await this.collection.fetch();
+
+      this.items = items;
+      this.total = total;
+    },
+
+    onSizeChange(size){
+      this.pageSize = size;
+      this.currentPage = 0;
+      this.fetchItems();
+    },
+
+    onCurrentChange(page){
+      this.currentPage = page;
+      this.fetchItems();
+    },
+
+    onDetail(item){
+      this.$router.push({name: 'agent-detail',params:{
+        agentId:item.id,
+      }});
+    },
+
+    onChange(data){
+      console.warn('onChange',data);
+      let model = this.collection.select(data.id);
+      model.update({...data});
+    },
+
+    async onDelete(item,options){
+      let model = this.collection.select(item.id);
+      await this.$alert(`删除用户"${item.realname}(${item.username})"`,'删除用户')
+      await model.destory();
+      this.$message( '删除成功');
+      if(options&&options.goBack){
+        // TODO replace
+        this.$router.go(-1);
+      }
+    },
+
+    onEdit(item){
+      this.$router.push({name: 'agent-detail-edit',params:{
+        agentId:item.id,
+      }});
+    },
+
+    onSearch(){
+      this.currentPage = 0;
+      this.fetchItems();
+    },
+
+    //@create({child:AgentDetail,mode:'create',title:'添加坐席'})
+    onCreate(next){
+      /** 
+        1. 准备数据，
+        2. create 弹窗
+        3. 返回结果
+        4. 调用接口创建
+        5. 接口调用结果提示
+        6. 更新页面...
+       */
+      console.log(next);
+      creator(this,this.$createElement,{
+        title: '添加坐席',
+        data:{},
+        entity:Agent,
+        shape:CreateShape,
+      }).then(rs=>{
+        console.log('onCreate',rs);
+        this.collection.create({...rs});
+      });
+      //return ({item:{},collection: this.collection});
+    },
+  },
+
+  mounted(){
+    this.collection = new Agents();
+    this.fetchItems();
+  },
+
+};
+</script>
+
+
+<style lang="less">
+.page-agents{
+  .el-row{
+    margin-bottom: 10px;
+  }
+}
+</style>
+

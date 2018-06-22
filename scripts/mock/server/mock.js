@@ -1,8 +1,9 @@
 const Mock = require('mockjs');
 const path = require('path');
 
+const url = require('url');
+
 const express = require('express');
-const httpProxy = require('http-proxy');
 const pathToRegexp = require('path-to-regexp')
 const collector = require('../../helper/collector.js')
 
@@ -11,6 +12,9 @@ const storageService = require('./storage');
 const debug = require('debug')('mock');
 const debug_cookie = require('debug')('mock:cookie');
 const debug_todo = require('debug')('mock:todo');
+const debug_proxy = require('debug')('mock:proxy0');
+
+const {proxy,passProxy} = require('./proxy.js');
 
 function fixBindHost(server) {
   let origin;
@@ -32,7 +36,7 @@ function matchPath(responses, req, method) {
   }
   if (responses[url] && responses[url][method]) {
     // fast match
-    debug('fast-match', responses[url][method]);
+    //debug('fast-match', responses[url][method]);
     return responses[url][method];
   } else {
     for (let path in responses) {
@@ -101,33 +105,6 @@ async function setupMockByDocs() {
   }
 }
 
-function passProxy({proxy, host, reg, res, headers}) {
-  let target = host;
-  let _headers = Object.assign({
-    'Host': headers.origin,
-    //'Accept': 'application/json, */*',
-    //'Content-Type': 'application/json'
-  }, headers)
-
-  debug_proxy(target, _headers);
-  proxy.web(req, res, {
-    target: target,
-    headers: _headers
-  }, function(err, preq, pres, url) {
-    debug_proxy('proxy.callback', err);
-    debug_proxy('preq.headers', preq.headers);
-    debug_proxy('pres.headers', pres.headers);
-    if (err) {
-      res.status(400)
-      res.send(JSON.stringify(url));
-      res.end(JSON.stringify(err));
-    } else {
-      //pres.pipe(res);
-      //  根据response header content-type返回text/json/application/binary等
-      res.json(url);
-    }
-  });
-}
 
 function localResponse(match, req, res) {
   let rd = responseDecorations[match.path];
@@ -182,13 +159,21 @@ function localResponse(match, req, res) {
 
 function handleMock(req,res,next){
   debug('req.url', req.method, req.url);
+  let proxies = rootspec.servers;
   let method = req.method.toLowerCase();
   let match = matchPath(responses, req, method)
 
 
   if (match) {
-    debug('matched', JSON.stringify(responseDecorations))
+    debug('matched')
+    let spec = match.spec;
     let rd_proxy = responseDecorations[match.path];
+    if(spec['x-proxy']){
+      rd_proxy = {
+        proxyEnable:true,
+        proxy: rootspec.servers.find(server=>server.name == spec['x-proxy']).url,
+      };
+    }
     debug('rd_proxy', rd_proxy);
 
     if (rd_proxy) {
@@ -200,7 +185,7 @@ function handleMock(req,res,next){
         let {target, origin} = fixBindHost(server);
 
         if (origin) {
-          return passProxy({ req, res, proxy, host: target, headers: { origin: origin, } })
+          return passProxy({ req, res, server, host: target, headers: { origin: origin, } })
         } else {
           return localResponse(match, req, res);
         }
@@ -213,7 +198,7 @@ function handleMock(req,res,next){
           // path && method
           debug_proxy('path.method', rd_proxy);
           let _server = rd_proxy.proxy;
-          let server = proxies.filter(ser => ser.url == _server)[0];
+          let server = rootspec.servers.filter(ser => ser.url == _server)[0];
           let {target, origin} = fixBindHost(server);
           let host = server && server['x-host'] || _server;
 
@@ -224,7 +209,7 @@ function handleMock(req,res,next){
             return passProxy({
               req,
               res,
-              proxy,
+              server,
               host: target,
               headers: {
                 origin: origin,
@@ -244,7 +229,7 @@ function handleMock(req,res,next){
       return passProxy({
         req,
         res,
-        proxy,
+        server,
         host: target,
         headers: {
           origin: origin,
@@ -261,6 +246,11 @@ function handleMock(req,res,next){
 }
 
 let router = express.Router();
+router.use(function (req, res, next) {
+  res.header("X-powered-by", "Alodi mocker")
+  next()
+})
+
 setupMockByDocs();
 // 查看currentServer, 如果为本地，使用本地mock,如果本地mock无法匹配，next()
 // 如果为特定http服务器，使用proxy
@@ -268,6 +258,7 @@ setupMockByDocs();
 
 let projectJson = require(path.resolve(process.cwd(),'package.json'));
 let mockConfig = projectJson.mockConfig || {};
+debug('mockConfig',mockConfig);
 
 if(mockConfig.prefix){
   router.use(mockConfig.prefix,handleMock);

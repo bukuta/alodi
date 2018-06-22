@@ -11,6 +11,7 @@ const previewUtil = require('../scripts/preview.js');
 const preview2Util = require('../scripts/preview2.js');
 const mockUtil = require('../scripts/mock');
 const generateUtil = require('../scripts/generate');
+//const configUtil = require('../scripts/config');
 
 debug('init');
 
@@ -43,6 +44,13 @@ program.command('preview2 <file>')
     debug('preview')
     debug('file', file)
     preview2Util.run(file);
+  });
+
+program.command('config')
+  .description('config server')
+  .action(function(env, options) {
+    debug('config');
+    //configUtil.run();
   });
 
 
