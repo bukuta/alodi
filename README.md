@@ -10,10 +10,6 @@
 ## usage
 ```bash
 # 全局安装
-##  npm  无法按如下 方式 直接安装gitlab 上的包 
-## npm install -g git@git.skyeye.world:NGSOC-FE/alodi-sdk.git
-##  先clone 下来，  进入对应目录，npm install ./ -g
-
 PORT=3332 alodi preview dist/index.json # cli alone
 PORT=3333 alodi mock
 
