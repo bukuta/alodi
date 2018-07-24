@@ -116,7 +116,7 @@ async function pureXs(main, root, parent, currentpath) {
       delete main[key];
       let node = JSON.parse(JSON.stringify(pickNode(root, ref)));
       //debug4(ref,node);
-      node.properties
+      //node.properties
       for (var k in node) {
         main[k] = node[k];
         if (k == 'properties') {
@@ -173,7 +173,7 @@ function omitKeys(main) {
 function collectMocks(schemas, root) {
   let r = {};
   for (let name in schemas) {
-    let tmp = collectMocksFromEntity(schemas[name], root);
+    let tmp = collectMocksFromEntity(schemas[name], root,name);
     if (tmp && Object.keys(tmp).length) {
       if (tmp.type == 'enum') {
         r[name + '|1'] = tmp.mock;
@@ -186,7 +186,8 @@ function collectMocks(schemas, root) {
   }
   return r;
 }
-function collectMocksFromEntity(schema, root) {
+function collectMocksFromEntity(schema, root,name) {
+  debug('collectMocksFromEntity',name);
   let properties = schema.properties;
   let r = {};
   let type = '';
