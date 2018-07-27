@@ -198,7 +198,7 @@ function collectMocksFromEntity(schema, root,name) {
       if (value.hasOwnProperty('x-mock')) {
         r[name] = value['x-mock'];
       } else if (value.hasOwnProperty('$ref')) {
-        //debug5(name, value)
+        debug5(name, value)
         let node = pickNode(root, value['$ref']);
         //debug5(node);
         let m = collectMocksFromEntity(node, root);

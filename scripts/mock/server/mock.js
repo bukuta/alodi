@@ -16,6 +16,8 @@ const debug_proxy = require('debug')('mock:proxy0');
 
 const {proxy,passProxy} = require('./proxy.js');
 
+
+
 function fixBindHost(server) {
   let origin;
   let _url = url.parse(server.url);
@@ -58,6 +60,17 @@ function matchPath(responses, req, method) {
     //Object.keys(responses).filter(path
   }
 }
+function buildRandom(spec){
+  let xrandoms = spec['x-random'];
+  let randoms = {};
+
+  Object.entries(xrandoms).forEach(([name,funstr])=>{
+    debug(name,funstr);
+    let fun = new Function('','return '+funstr)()(Mock.Random);
+    randoms[name]=fun;
+  });
+  Mock.Random.extend(randoms);
+}
 
 
 let responses={};
@@ -69,6 +82,8 @@ async function setupMockByDocs() {
   rootspec = await storageService.getSpecs();
   responseDecorations = await storageService.getDecorations();
   currentServer = await storageService.getCurrentServer();
+
+  buildRandom(rootspec);
 
   let specs = rootspec.paths;
   let proxies = rootspec.servers;
@@ -109,6 +124,7 @@ async function setupMockByDocs() {
 function localResponse(match, req, res) {
   let rd = responseDecorations[match.path];
   let skipcode = {};
+
   if (rd) {
     if (rd.skip) {
       return next();
@@ -126,14 +142,23 @@ function localResponse(match, req, res) {
       });
     }
   }
+
   let params = match.spec.parameters;
   debug(params);
   debug_todo('validate parameters');
   debug_todo('check request.contenttype');
+
+  // CODES=200,201
+
   let statusCodes = Object.keys(match.responses).filter(code => !skipcode[code]);
   debug('statusCodes', statusCodes);
+  statusCodes = statusCodes.filter(c=>c<400);
+
   let random = parseInt(Math.random() * statusCodes.length, 10);
   let statusCode = statusCodes[random];
+
+
+
   let response = match.responses[statusCode];
   //res.end(JSON.stringify(req.params));
   res.status(statusCode);
