@@ -1,0 +1,28 @@
+import { <%=modelName%>sCollection as Collection } from '$domains/<%=modelName%>s';
+
+import { createStore } from '$vuex-util';
+import { baseStore, collectionStore, modelStore } from '$vuex-templates';
+
+let collection = new Collection();
+
+let filters = {
+  // properties of model
+};
+
+const store = createStore({
+  namespaced: true,
+  collection,
+  filters,
+  actions:{
+    // 自定义action
+    //'reset-password':async function({commit,state},payload){
+      //await collection.select(payload.id).resetPassword();
+    //},
+  },
+
+  stores: [
+    baseStore, collectionStore
+  ],
+})
+
+export default store;

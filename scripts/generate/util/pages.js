@@ -2,6 +2,8 @@ const debug = require('debug')('alodi:generate');
 const path = require('path');
 const fse = require('fs-extra');
 const _ = require('lodash');
+_.templateSettings.interpolate = /<%=([\s\S]+?)%>/g;
+
 
 async function getTemplate(name){
   let templateContent = await fse.readFile(path.join(__dirname, '../templates/'+name),'utf-8');
@@ -12,30 +14,26 @@ async function getTemplate(name){
 async function run({outputdir,root,models}) {
   debug('run');
   let templates = {
-    collection:await getTemplate('domains/collection.tpl'),
-    model:await getTemplate('domains/model.tpl'),
+    list:await getTemplate('pages/index.ejs'),
+    detail:await getTemplate('pages/detail/index.ejs'),
   };
 
   Object.entries(models).forEach(async ([modelName,types])=>{
-    let data = {
-      modelName: modelName,
-      // TODO get path
-      path:'/todo',
-      rpcs:[],
-      //rpcs: [
-        //{
-          //path: '/login',
-          //name: 'login',
-        //},
-        //{
-          //path: '/logout',
-          //name: 'logout',
-        //},
-      //],
-    };
-    Object.keys(types||{collection:1,model:1}).forEach(async (type)=>{
+
+    let schema = root.components.schemas[modelName];
+
+    Object.keys(types||{list:1,detail:1}).forEach(async (type)=>{
+      let data = {
+        schema:schema,
+        modelName: modelName,
+        storeName: modelName.toLowerCase(),
+        filter:types[type].filter,
+        pagination:types[type].pagination,
+        actions:types[type].actions,
+      };
+
       let r = templates[type](data);
-      let typefile = path.join(outputdir,modelName+type[0].toUpperCase()+type.substring(1)+'.js');
+      let typefile = path.join(outputdir,'pages', modelName.toLowerCase()+(type=='detail'?'.detail':'')+'.vue');
       await fse.ensureFile(typefile);
       fse.writeFile(typefile,r);
     });
@@ -44,4 +42,6 @@ async function run({outputdir,root,models}) {
 }
 
 module.exports.run = run;
+
+
 

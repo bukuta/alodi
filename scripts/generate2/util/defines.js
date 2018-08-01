@@ -30,8 +30,6 @@
 const util = require('util');
 const path = require('path');
 const fs = require('fs');
-const fse = require('fs-extra');
-const Mock = require('mockjs');
 
 var mkdirp = util.promisify(require('mkdirp'));
 const _ = require('lodash');
@@ -39,8 +37,6 @@ const debug = require('debug')('generator');
 const debug_todo = require('debug')('generator:TODO');
 
 const debug_error = require('debug')('error');
-const debug5= require('debug')('collection');
-const debug6= require('debug')('collection');
 
 const readFile = util.promisify(fs.readFile);
 const writeFile = util.promisify(fs.writeFile);
@@ -145,7 +141,7 @@ function collectMocksFromResponse(response, root) {
 }
 
 async function getTemplate(name){
-  let templateContent = await readFile(path.join(__dirname, '../templates/defines/'+name+'.ejs'),'utf-8');
+  let templateContent = await readFile(path.join(__dirname, './templates/'+name+'.ejs'),'utf-8');
   let template = _.template(templateContent)
   return template;
 }
@@ -170,19 +166,17 @@ function collectShapes(schema){
   return renameScenes;
 }
 
-async function genEntities({outputdir,root, models}) {
+async function genEntities(outputdir) {
   let templates = {
     index:await getTemplate('index'),
     entity:await getTemplate('entity'),
     shape:await getTemplate('shape'),
-    data:await getTemplate('data'),
-    mock:await getTemplate('mock'),
   };
 
-  //let content = await readFile(specFile,'utf-8');
-  //let root = JSON.parse(content);
+  let content = await readFile(path.join(process.cwd(), 'dist/index.json'),'utf-8');
+  let root = JSON.parse(content);
   let schemas = root.components.schemas;
-  let names = Object.keys(models);
+  let names = Object.keys(schemas);
   for(var name of names){
     let schema = schemas[name];
     if(schema['x-gen-skip']){
@@ -191,43 +185,33 @@ async function genEntities({outputdir,root, models}) {
     }
     name = name.toLowerCase();
 
+
     let entityfile = path.join(outputdir, name,'entity.js');
-    await fse.ensureFile(entityfile)
+    await mkdirp(path.dirname(entityfile));
     await writeFile(entityfile,templates.entity({entity:schema}));
 
-    let mockfile = path.join(outputdir, name,'mock.js');
     let mockdatafile = path.join(outputdir, name,'data.js');
 
     let shapes = collectShapes(schema);
 
     for(var scenename in shapes){
       let shapefile = path.join(outputdir, name,`shapes/${scenename}.js`);
-      await fse.ensureFile(shapefile)
+      await mkdirp(path.dirname(shapefile));
       await writeFile(shapefile,templates.shape({shape:shapes[scenename]}));
     }
 
-    let mock= collectMocksFromEntity(schema,root);
-
-    await fse.ensureFile(mockfile)
-    await writeFile(mockfile,templates.mock({data:mock.mock}));
-
-    await fse.ensureFile(mockdatafile)
-    let mockdata = Mock.mock(mock.mock);
-    await writeFile(mockdatafile,templates.data({data:mockdata}));
-
     let indexfile = path.join(outputdir, name,'index.js');
     debug(indexfile);
-    await fse.ensureFile(indexfile)
+    await mkdirp(path.dirname(indexfile));
     await writeFile(indexfile,templates.index({shapes:Object.keys(shapes)}));
 
     debug(entityfile);
+    debug(mockdatafile);
   }
 }
-//process.on('warning',function(e){
-  //debug(e);
-//});
+process.on('warning',function(e){
+  debug(e);
+});
 
 
-module.exports.run = genEntities;
-
-//genEntities(path.join(__dirname,'../../dist/gen'));
+genEntities(path.join(__dirname,'../../dist/gen'));

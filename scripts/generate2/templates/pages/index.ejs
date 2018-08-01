@@ -1,27 +1,12 @@
 <template>
   <div class="page page-agents">
     <el-row>
-      <%=schema.description%>列表
+      坐席列表
     </el-row>
-    <%if(filter||actions.create){%>
     <el-form :inline="true" size="mini" :model="filters" class="form-inline">
-      <%if(filter){%>
-      <%for(var name of Object.keys(filter)){
-      let property = schema.properties[name];
-      %>
-      <%if(property.enum){%>
-          <el-form-item label="<%=property.description%>">
-            <el-input v-model="filters.<%=name%>" placeholder="<%=property.description%>"></el-input>
-          </el-form-item>
-          <%}else{%>
-          <el-form-item label="<%=property.description%>">
-            <el-select v-model="filters.<%=name%>" placeholder="<%=property.description%>">
-              <el-option />
-            </el-select>
-          </el-form-item>
-          <%}%>
-        <%}%>
-      <%}%>
+      <el-form-item label="过滤">
+        <el-input v-model="filters.name" placeholder="姓名"></el-input>
+      </el-form-item>
       <el-form-item >
         <el-select v-model="filters.group" placeholder="分组">
           <el-option label="预催" value="advance"></el-option>
@@ -29,11 +14,10 @@
         </el-select>
       </el-form-item>
       <el-form-item>
-        <%if(filter){%><el-button type="primary" @click="onSearch">查询</el-button><%}%>
-        <%if(actions.create){%><el-button type="primary" @click="onCreate">添加</el-button><%}%>
+        <el-button type="primary" @click="onSearch">查询</el-button>
+        <el-button type="primary" @click="onCreate">添加</el-button>
       </el-form-item>
     </el-form>
-    <%}%>
 
     <el-row>
       <el-table
@@ -176,7 +160,7 @@ export default {
 
     async onDelete(item,options){
       let model = this.collection.select(item.id);
-      await this.$alert(\\`删除用户"${item.realname}(${item.username})"\\`,'删除用户')
+      await this.$alert(`删除用户"${item.realname}(${item.username})"`,'删除用户')
       await model.destory();
       this.$message( '删除成功');
       if(options&&options.goBack){
@@ -198,7 +182,7 @@ export default {
 
     //@create({child:AgentDetail,mode:'create',title:'添加坐席'})
     onCreate(next){
-      /**
+      /** 
         1. 准备数据，
         2. create 弹窗
         3. 返回结果

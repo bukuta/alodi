@@ -3,7 +3,7 @@
  */
 import {BaseCollection,BaseModel,rpc} from 'yard';
 
-class <%=modelName%>Model extends BaseModel{
+class <%=modelName%>Model extends Model{
   constructor({url}){
     super({url:url||'/system/config'})
   }
@@ -18,4 +18,3 @@ class <%=modelName%>Model extends BaseModel{
   <%}%>
 }
 
-export default <%=modelName%>Model;
