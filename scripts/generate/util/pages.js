@@ -5,43 +5,96 @@ const _ = require('lodash');
 _.templateSettings.interpolate = /<%=([\s\S]+?)%>/g;
 
 
-async function getTemplate(name){
-  let templateContent = await fse.readFile(path.join(__dirname, '../templates/'+name),'utf-8');
+async function getTemplate(name) {
+  let templateContent = await fse.readFile(path.join(__dirname, '../templates/' + name), 'utf-8');
   let template = _.template(templateContent)
   return template;
 }
 
-async function run({outputdir,root,models}) {
+const defaults = {
+  filter: {
+  },
+  actions: {
+    create: 1,
+    detail: 1,
+    delete: 1,
+    edit: 1,
+  },
+  pagination: {
+    'page-sizes': [10, 20, 50],
+    layout: 'total, sizes, prev, pager, next, jumper',
+  },
+};
+let templates;
+async function init() {
+  templates = {
+    list: await getTemplate('pages/index.ejs'),
+    picker: await getTemplate('pages/picker/index.ejs'),
+    detail: await getTemplate('pages/detail/index.ejs'),
+  };
+}
+init();
+
+async function run({outputdir, root, options}) {
   debug('run');
-  let templates = {
-    list:await getTemplate('pages/index.ejs'),
-    detail:await getTemplate('pages/detail/index.ejs'),
+  let {modelName, type, ...option} = options;
+
+  let schema = root.components.schemas[modelName];
+
+  debug('pagetype:', type);
+  let fields,
+    filter,
+    pagination;
+  let actions = {};
+  fields = _.get(options, 'fields', schema.properties);
+  filter = _.get(options, 'filter', defaults.filter);
+  pagination = _.get(options, 'pagination', defaults.pagination);
+
+  actions = _.get(options, 'actions', defaults.actions);
+
+  let enums = [];
+  Object.entries(schema.properties).filter(([name, item]) => {
+    return !!item.enum
+  }).forEach(([name, item]) => {
+    let xenum = item['x-enum'] || [];
+    if (!xenum.length) {
+      xenum = item.enum.map(a => {
+        return {
+          value: a,
+          label: a
+        }
+      });
+    }
+    let obj = {
+      name,
+      enum: item.enum,
+      'x-enum': xenum
+    };
+    enums.push(obj);
+  });
+
+  let data = {
+    fields,
+    schema,
+    modelName,
+    storeName: modelName.toLowerCase(),
+    filter,
+    pagination,
+    actions,
+    enums,
   };
 
-  Object.entries(models).forEach(async ([modelName,types])=>{
+  let r = templates[type](data);
+  let typefile = path.join(outputdir, 'pages', modelName.toLowerCase(), ({
+      list: 'index',
+      'detail': 'detail/index',
+      'picker': 'picker/index'
+    })[type] + '.vue');
 
-    let schema = root.components.schemas[modelName];
-
-    Object.keys(types||{list:1,detail:1}).forEach(async (type)=>{
-      let data = {
-        schema:schema,
-        modelName: modelName,
-        storeName: modelName.toLowerCase(),
-        filter:types[type].filter,
-        pagination:types[type].pagination,
-        actions:types[type].actions,
-      };
-
-      let r = templates[type](data);
-      let typefile = path.join(outputdir,'pages', modelName.toLowerCase()+(type=='detail'?'.detail':'')+'.vue');
-      await fse.ensureFile(typefile);
-      fse.writeFile(typefile,r);
-    });
-  });
+  await fse.ensureFile(typefile);
+  fse.writeFile(typefile, r);
 
 }
 
 module.exports.run = run;
-
-
 

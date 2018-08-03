@@ -21,47 +21,113 @@ let spec;
 async function run() {
   let answers;
   answers = await getAnswers();
-  let {config,project} = answers;
+  let {config, project} = answers;
   debug(answers);
 
   let cwd = process.cwd();
 
-  let content = await fse.readFile(path.join(process.cwd(), 'dist/index.json'),'utf-8');
+  let content = await fse.readFile(path.join(process.cwd(), 'dist/index.json'), 'utf-8');
   let root = JSON.parse(content);
 
 
-  //if(Object.keys(project.defines||{}).length){
-    //let definesDir = path.join(cwd,config.paths.defines);
-    //await fse.ensureDir(definesDir);
-    //await genDefines({root:root,outputdir:definesDir, models: project.defines});
-  //}
+  for (let [name, item] of Object.entries(project)) {
+    if (_.has(item, 'defines')) {
+      let definesDir = path.join(cwd, config.paths.defines);
+      await fse.ensureDir(definesDir);
+      await genDefines({
+        root: root,
+        outputdir: definesDir,
+        models: {
+          [name]: name
+        }
+      });
+    }
+    if (_.has(item, 'domains')) {
+      let domainsDir = path.join(cwd, config.paths.domains);
+      await fse.ensureDir(domainsDir);
+      await genDomains({
+        root: root,
+        outputdir: domainsDir,
+        models: {
+          [name]: {collection:1,model:1}
+        }
+      });
+    }
+    if (_.has(item, 'pages')) {
+      //let storesDir = path.join(cwd, config.paths.stores);
+      //await fse.ensureDir(storesDir);
+      //await genStores({
+        //root: root,
+        //outputdir: storesDir,
+        //models: {[name]:name},
+      //});
 
-  //if (Object.keys(project.domains||{}).length) {
-    //let domainsDir = path.join(cwd,config.paths.domains);
-    //await fse.ensureDir(domainsDir);
-    //await genDomains({root:root,outputdir:domainsDir, models: project.domains});
-  //}
-  //if (Object.keys(project.stores||{}).length) {
-    //let storesDir = path.join(cwd,config.paths.stores);
-    //await fse.ensureDir(storesDir);
-    //await genStores({root:root,outputdir:storesDir, models: project.stores});
-  //}
-  if (Object.keys(project.pages||{}).length) {
-    let pagesDir = path.join(cwd,config.paths.pages);
+      let pagesDir = path.join(cwd, config.paths.pages);
+      await fse.ensureDir(pagesDir);
+      item.pages.forEach(async(page)=>{
+        await genPages({
+          root: root,
+          outputdir: pagesDir,
+          options: {modelName:name,...page}
+        });
+      });
+
+    }
+  }
+
+  return;
+
+  if (Object.keys(project.defines || {}).length) {
+    let definesDir = path.join(cwd, config.paths.defines);
+    await fse.ensureDir(definesDir);
+    await genDefines({
+      root: root,
+      outputdir: definesDir,
+      models: project.defines
+    });
+  }
+
+  if (Object.keys(project.domains || {}).length) {
+    let domainsDir = path.join(cwd, config.paths.domains);
+    await fse.ensureDir(domainsDir);
+    await genDomains({
+      root: root,
+      outputdir: domainsDir,
+      models: project.domains
+    });
+  }
+  if (Object.keys(project.stores || {}).length) {
+    let storesDir = path.join(cwd, config.paths.stores);
+    await fse.ensureDir(storesDir);
+    await genStores({
+      root: root,
+      outputdir: storesDir,
+      models: project.stores
+    });
+  }
+  if (Object.keys(project.pages || {}).length) {
+    let pagesDir = path.join(cwd, config.paths.pages);
     await fse.ensureDir(pagesDir);
-    await genPages({root:root,outputdir:pagesDir, models: project.pages});
+    await genPages({
+      root: root,
+      outputdir: pagesDir,
+      models: project.pages
+    });
   }
 }
 
 
 async function getAnswers() {
   let cwd = process.cwd();
-  let configFile = path.join(cwd,'code-gen/config.yaml');
+  let configFile = path.join(cwd, 'code-gen/config.yaml');
   let config = await parseYamlFile(configFile);
 
-  let projectFile = path.join(cwd,'code-gen/project.yaml');
+  let projectFile = path.join(cwd, 'code-gen/project.yaml');
   let project = await parseYamlFile(projectFile);
-  return {config,project};
+  return {
+    config,
+    project
+  };
 }
 
 async function parseYamlFile(file) {

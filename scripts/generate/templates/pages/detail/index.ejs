@@ -26,13 +26,14 @@
 <script>
 
 import {ResourceViewer,ResourceModifier} from '$mould/view-builder';
-import Agent from '$services/defines/agent/entity.js';
-import ViewShape from '$services/defines/agent/shapes/view.js';
-import CreateShape from '$services/defines/agent/shapes/create.js';
-import EditShape from '$services/defines/agent/shapes/edit.js';
+
+import Entity from '$defines/agent/entity.js';
+import ViewShape from '$defines/<%=_.lowerCase(modelName)%>/shapes/view.js';
+import CreateShape from '$defines/<%=_.lowerCase(modelName)%>/shapes/create.js';
+import EditShape from '$defines/<%=_.lowerCase(modelName)%>/shapes/edit.js';
 
 export default {
-  name: 'detail-agent',
+  name: 'detail-<%=_.lowerCase(modelName)%>',
   props:['item','canEdit'],
   components:{
     'resource-viewer':ResourceViewer,
@@ -40,12 +41,12 @@ export default {
   },
 
   data(){
-    let id = this.$route.params.agentId;
+    let id = this.$route.params.<%=_.lowerCase(modelName)%>Id;
     return {
       id,
       editing:false,
       data:{id},
-      entity:Agent,
+      entity:Entity,
       viewShape:ViewShape,
       editShape:EditShape,
     };
@@ -58,6 +59,8 @@ export default {
     },
 
     syncData(){
+      // TODO
+      console.log('TODO')
 
     },
 
@@ -71,7 +74,6 @@ export default {
     },
 
     onSubmit(){
-      console.warn('// TODO ');
       this.$emit('change',{...this.data});
     },
 
@@ -81,7 +83,6 @@ export default {
   },
   mounted(){
     let id = this.$route.params.agentId;
-    console.warn('id',id);
     this.syncData();
   },
 };

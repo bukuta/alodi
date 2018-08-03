@@ -6,7 +6,7 @@ import { baseStore, collectionStore, modelStore } from '$vuex-templates';
 let collection = new Collection();
 
 // properties of model
-let filters = <%=JSON.stringify(properties,0,2)%>;
+let filters = <%=JSON.stringify(filter,0,2)%>;
 
 const store = createStore({
   namespaced: true,

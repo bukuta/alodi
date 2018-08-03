@@ -28,25 +28,17 @@ async function run({outputdir,root,models}) {
       }
     });
 
+    Object.keys(types||{list:1,detail:1}).forEach(async (type)=>{
+      let filter = _.get(types,[type,'filter']);
     let data = {
       modelName: modelName,
       // TODO get path
       path:'/todo',
       properties:properties,
+      filter,
       rpcs:[],
-      //rpcs: [
-        //{
-          //path: '/login',
-          //name: 'login',
-        //},
-        //{
-          //path: '/logout',
-          //name: 'logout',
-        //},
-      //],
     };
 
-    Object.keys(types||{list:1,detail:1}).forEach(async (type)=>{
       let r = templates[type](data);
       let typefile = path.join(outputdir,'stores', modelName.toLowerCase()+(type=='detail'?'.detail':'')+'.js');
       await fse.ensureFile(typefile);

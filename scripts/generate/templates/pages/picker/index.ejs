@@ -1,9 +1,5 @@
 <template>
   <div class="page page-<%=_.lowerCase(modelName)%>s">
-    <el-row>
-      <%=schema.description%>列表
-    </el-row>
-
     <%if(filter||actions.create){%>
     <el-form :inline="true" size="mini" :model="filters" class="form-inline">
       <%if(filter){
@@ -38,8 +34,12 @@
         size="small"
         :resizable="false"
         style="width: 100%">
-        <%for(let name of Object.keys(fields)){
-        let item = schema.properties[name];%>
+        <el-table-column
+          type="selection"
+          width="50"
+          >
+        </el-table-column>
+        <%for(let [name, item] of Object.entries(schema.properties)){%>
         <el-table-column
           prop="<%=name%>"
           label="<%=item.description%>"
@@ -52,18 +52,6 @@
         <%}%>
         </el-table-column>
         <%}%>
-
-        <el-table-column
-          fixed="right"
-          label="操作"
-          align="center"
-          width="150">
-          <template slot-scope="scope"><%if(actions.detail){%>
-            <el-button @click="onDetail(scope.row)" type="text" size="small">查看</el-button><%}%><%if(actions.edit){%>
-            <el-button @click="onEdit(scope.row)" type="text" size="small">编辑</el-button><%}%><%if(actions.delete){%>
-            <el-button @click="onDelete(scope.row)" type="text" size="small">删除</el-button><%}%>
-          </template>
-        </el-table-column>
       </el-table>
     </el-row>
     <%if(pagination){%>
@@ -88,23 +76,14 @@
 <script>
 
 import { mapState, mapActions ,mapMutations, createNamespacedHelpers } from 'vuex'
-const helper = createNamespacedHelpers('<%=storeName%>')
+const helper = createNamespacedHelpers('<%=storeName%>-picker')
 
 
-import {<%=modelName%>Detail} from './detail/index.vue';
 
-
-<%if(actions.create||actions.edit){%>
+<%if(actions.create){%>
 import Entity from '$defines/<%=_.lowerCase(modelName)%>/entity.js';
-<%}
-
-if(actions.create){%>
 import creator from '$mould/helper/dialog-creator.js';
 import CreateShape from '$defines/<%=_.lowerCase(modelName)%>/shapes/create.js';
-<%}
-if(actions.edit){%>
-import editor from '$mould/helper/dialog-editor.js';
-import EditShape from '$defines/<%=_.lowerCase(modelName)%>/shapes/edit.js';
 <%}%>
 
 const RESOURCE_NAME="<%=schema.description%>";
@@ -129,7 +108,7 @@ const MESSAGES_FAILED={
 
 
 export default {
-  name: '<%=_.lowerCase(modelName)%>s',
+  name: 'picker-<%=_.lowerCase(modelName)%>s',
   props: [],
   components: {
   },
@@ -195,63 +174,6 @@ export default {
       });
     },
 
-    // ---------删除
-    async onDelete(item,options){
-      await this.$alert(`删除<%=schema.description%>"${item.name}"`,
-        TITLES.destroy,
-      )
-      try{
-        await this.destroy(item);
-        this.$message(MESSAGES_SUCCESS.destroy);
-        if(options&&options.goBack){
-          // TODO replace
-          this.$router.go(-1);
-        }
-      }catch(e){
-        this.$message(MESSAGES_FAILED.destroy);
-      }
-    },
-
-    // ---------编辑
-    onEdit(item){
-      this.$router.push({name: '<%=_.lowerCase(modelName)%>-detail-edit',params:{
-        <%=_.lowerCase(modelName)%>Id:item.id,
-      }});
-    },
-    onEdit2(item){
-      creator(this,this.$createElement,{
-        title  : TITLES.update,
-        data   : {...item},
-        entity : Entity,
-        shape  : EditShape,
-      }).then(rs=>{
-        console.log('onEdit',rs);
-        this.update(rs).then(rs=>{
-          this.$message({type:'success',message:MESSAGES_SUCCESS.update})
-        },err=>{
-          this.$message({type:'error',message:MESSAGES_FAILED.update})
-        });
-      });
-    },
-
-    // ---------修改
-    async onChange(data){
-      console.warn('onChange',data);
-      try{
-        await this.update({...data});
-        this.$message(MESSAGES_SUCCESS.update);
-      }catch(e){
-        this.$message(MESSAGES_FAILED.update);
-      }
-    },
-
-    onDetail(item){
-      this.$router.push({name: '<%=_.lowerCase(modelName)%>-detail',params:{
-        <%=_.lowerCase(modelName)%>Id:item.id,
-      }});
-    },
-
-
   },
 
   mounted(){
@@ -277,10 +199,11 @@ export default {
 
 
 <style lang="less">
-.page-<%=_.lowerCase(modelName)%>s{
+.page-<%=_.lowerCase(modelName)%>s-picker{
   .el-row{
     margin-bottom: 10px;
   }
 }
 </style>
+
 
