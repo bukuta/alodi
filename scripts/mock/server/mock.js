@@ -192,8 +192,11 @@ function handleMock(req,res,next){
   if (match) {
     debug('matched')
     let spec = match.spec;
-    let rd_proxy = responseDecorations[match.path];
+    //let rd_proxy = responseDecorations[match.path];
+    let rd_proxy = null;
     if(spec['x-proxy']){
+      debug('spec.x-proxy',spec['x-proxy']);
+      debug('root.servers',rootspec.servers);
       rd_proxy = {
         proxyEnable:true,
         proxy: rootspec.servers.find(server=>server.name == spec['x-proxy']).url,
@@ -205,7 +208,7 @@ function handleMock(req,res,next){
       if (rd_proxy.proxyEnable && rd_proxy.proxy) {
         debug_proxy('path', rd_proxy);
         let _server = rd_proxy.proxy;
-        let server = proxies.filter(ser => ser.url = _server)[0];
+        let server = proxies.filter(ser => ser.url == _server)[0];
         debug_proxy(_server);
         let {target, origin} = fixBindHost(server);
 
