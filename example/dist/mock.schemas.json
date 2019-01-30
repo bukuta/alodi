@@ -1,4 +1,10 @@
 {
+  "ID": "@integer(0,100000)",
+  "UserType|1": [
+    "NORMAL",
+    "ADMIN",
+    "AUDIT"
+  ],
   "Admin": {
     "id": "@integer(0,100000)",
     "name": "@word",
@@ -8,11 +14,5 @@
     "creator": "@integer(0,100000)",
     "createAt": "@datetime",
     "updateAt": "@datetime"
-  },
-  "ID": "@integer(0,100000)",
-  "UserType|1": [
-    "NORMAL",
-    "ADMIN",
-    "AUDIT"
-  ]
+  }
 }

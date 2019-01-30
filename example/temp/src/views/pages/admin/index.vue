@@ -1,35 +1,36 @@
 <template>
-  <div class="page page-<%=_.lowerCase(modelName)%>s">
+  <div class="page page-admins">
     <el-row>
-      <%=schema.description%>列表
+      管理员列表
     </el-row>
 
-    <%if(filter||actions.create){%>
+
     <el-form :inline="true" size="mini" :model="filters" class="form-inline">
-      <%if(filter){
-        for(var name of Object.keys(filter)){
-          let property = schema.properties[name];
-          if(property.enum&&property['x-enum']){%>
-          <el-form-item label="<%=property.description%>">
-            <el-select v-model="filters.<%=name%>" placeholder="<%=property.description%>"><%for(let item of property['x-enum']){%>
-              <el-option value="<%=item.value%>" label="<%=item.label%>"/><%}%>
+
+          <el-form-item label="名字">
+            <el-input v-model="filters.name" placeholder="名字"></el-input>
+          </el-form-item>
+
+          <el-form-item label="中文名">
+            <el-input v-model="filters.cname" placeholder="中文名"></el-input>
+          </el-form-item>
+
+          <el-form-item label="用户状态">
+            <el-select v-model="filters.status" placeholder="用户状态">
+              <el-option value="0" label="允许"/>
+              <el-option value="1" label="禁止"/>
+              <el-option value="2" label="锁定"/>
             </el-select>
           </el-form-item>
-          <%}else{%>
-          <el-form-item label="<%=property.description%>">
-            <el-input v-model="filters.<%=name%>" placeholder="<%=property.description%>"></el-input>
-          </el-form-item>
-        <%}
-        }
-      }%>
+
 
       <el-form-item>
-        <%if(filter){%><el-button type="primary" @click="onSearch">查询</el-button>
-        <el-button @click="clearSearch">重置</el-button><%}%>
-        <%if(actions.create){%><el-button type="primary" @click="onCreate">添加</el-button><%}%>
+        <el-button type="primary" @click="onSearch">查询</el-button>
+        <el-button @click="clearSearch">重置</el-button>
+        <el-button type="primary" @click="onCreate">添加</el-button>
       </el-form-item>
     </el-form>
-    <%}%>
+
 
     <el-row>
       <el-table
@@ -38,47 +39,78 @@
         size="small"
         :resizable="false"
         style="width: 100%">
-        <%for(let name of Object.keys(fields)){
-        let item = schema.properties[name];%>
+
         <el-table-column
-          prop="<%=name%>"
-          label="<%=item&&item.description%>"
+          prop="name"
+          label="名字"
           width="150"
           >
-        <%if(item&&item['x-enum']){%>
-          <template slot-scope="scope">
-            <el-tag>{{scope.row.<%=name%>|<%=name%>Formater}}</el-tag>
-          </template>
-        <%}%>
+
         </el-table-column>
-        <%}%>
+
+        <el-table-column
+          prop="cname"
+          label="中文名"
+          width="150"
+          >
+
+        </el-table-column>
+
+        <el-table-column
+          prop="phone"
+          label=""
+          width="150"
+          >
+
+        </el-table-column>
+
+        <el-table-column
+          prop="department"
+          label=""
+          width="150"
+          >
+
+        </el-table-column>
+
+        <el-table-column
+          prop="status"
+          label="用户状态"
+          width="150"
+          >
+
+          <template slot-scope="scope">
+            <el-tag>{{scope.row.status|statusFormater}}</el-tag>
+          </template>
+
+        </el-table-column>
+
 
         <el-table-column
           fixed="right"
           label="操作"
           align="center"
           width="150">
-          <template slot-scope="scope"><%if(actions.detail){%>
-            <el-button @click="onDetail(scope.row)" type="text" size="small">查看</el-button><%}%><%if(actions.edit){%>
-            <el-button @click="onEdit(scope.row)" type="text" size="small">编辑</el-button><%}%><%if(actions.delete){%>
-            <el-button @click="onDelete(scope.row)" type="text" size="small">删除</el-button><%}%>
+          <template slot-scope="scope">
+            <el-button @click="onDetail(scope.row)" type="text" size="small">查看</el-button>
+            <el-button @click="onEdit(scope.row)" type="text" size="small">编辑</el-button>
+            <el-button @click="onDelete(scope.row)" type="text" size="small">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
     </el-row>
-    <%if(pagination){%>
+
     <el-row style="text-align:right;">
       <el-pagination
         @size-change="onSizeChange"
         @current-change="onCurrentChange"
         :current-page="currentPage"
-        :page-sizes="<%=JSON.stringify(pagination['page-sizes'])%>"
+        :page-sizes="[10,20,50]"
         :page-size="pageSize"
-        layout="<%=pagination.layout%>"
+        layout="total, sizes, prev, pager, next, jumper"
         :total="total">
       </el-pagination>
     </el-row>
-    <%}%>
+
     <router-view @change="onChange" @delete="onDelete">
     </router-view>
   </div>
@@ -88,26 +120,23 @@
 <script>
 
 import { mapState, mapActions ,mapMutations, createNamespacedHelpers } from 'vuex'
-const helper = createNamespacedHelpers('<%=storeName%>')
+const helper = createNamespacedHelpers('admin')
 
 
-import {<%=modelName%>Detail} from './detail/index.vue';
+import {AdminDetail} from './detail/index.vue';
 
 
-<%if(actions.create||actions.edit){%>
-import Entity from '$defines/<%=_.lowerCase(modelName)%>/entity.js';
-<%}
 
-if(actions.create){%>
+import Entity from '$defines/admin/entity.js';
+
 import creator from '$mould/helper/dialog-creator.js';
-import CreateShape from '$defines/<%=_.lowerCase(modelName)%>/shapes/create.js';
-<%}
-if(actions.edit){%>
-import editor from '$mould/helper/dialog-editor.js';
-import EditShape from '$defines/<%=_.lowerCase(modelName)%>/shapes/edit.js';
-<%}%>
+import CreateShape from '$defines/admin/shapes/create.js';
 
-const RESOURCE_NAME="<%=schema.description%>";
+import editor from '$mould/helper/dialog-editor.js';
+import EditShape from '$defines/admin/shapes/edit.js';
+
+
+const RESOURCE_NAME="管理员";
 
 const TITLES={
   'destroy':`删除${RESOURCE_NAME}`,
@@ -129,14 +158,14 @@ const MESSAGES_FAILED={
 
 
 export default {
-  name: '<%=_.lowerCase(modelName)%>s',
+  name: 'admins',
   props: [],
   components: {
   },
 
   data(){
-    return {<%if(filter){%>
-      filters:<%=JSON.stringify(filter)%><%}%>
+    return {
+      filters:{"name":null,"cname":null,"status":null}
     };
   },
 
@@ -197,7 +226,7 @@ export default {
 
     // ---------删除
     async onDelete(item,options){
-      await this.$alert(`删除<%=schema.description%>"${item.name}"`,
+      await this.$alert(`删除管理员"${item.name}"`,
         TITLES.destroy,
       )
       try{
@@ -214,8 +243,8 @@ export default {
 
     // ---------编辑
     onEdit(item){
-      this.$router.push({name: '<%=_.lowerCase(modelName)%>-detail-edit',params:{
-        <%=_.lowerCase(modelName)%>Id:item.id,
+      this.$router.push({name: 'admin-detail-edit',params:{
+        adminId:item.id,
       }});
     },
     onEdit2(item){
@@ -246,8 +275,8 @@ export default {
     },
 
     onDetail(item){
-      this.$router.push({name: '<%=_.lowerCase(modelName)%>-detail',params:{
-        <%=_.lowerCase(modelName)%>Id:item.id,
+      this.$router.push({name: 'admin-detail',params:{
+        adminId:item.id,
       }});
     },
 
@@ -258,18 +287,20 @@ export default {
     this.fetchItems();
   },
 
-  filters:{<%for(let item of enums){%>
-    <%=item.name%>Formater(type){
+  filters:{
+    statusFormater(type){
       if(typeof(type)=='undefined'){
         return '-';
       }
 
-      let TYPES={<%for(let enumitem of item['x-enum']){%>
-          <%=JSON.stringify(enumitem.value)%>:<%=JSON.stringify(enumitem.label)%>,<%}%>
+      let TYPES={
+          0:"允许",
+          1:"禁止",
+          2:"锁定",
       };
 
       return TYPES[type];
-    },<%}%>
+    },
   },
 
 };
@@ -277,7 +308,7 @@ export default {
 
 
 <style lang="less">
-.page-<%=_.lowerCase(modelName)%>s{
+.page-admins{
   .el-row{
     margin-bottom: 10px;
   }

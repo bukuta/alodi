@@ -5,6 +5,14 @@ UserType:
     - NORMAL
     - ADMIN
     - AUDIT
+  x-enum:
+    - value: NORMAL
+      label: NORMAL
+    - value: ADMIN
+      label: ADMIN
+    - value: AUDIT
+      label: AUDIT
+
 
 
 

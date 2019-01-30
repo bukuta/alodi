@@ -1,0 +1,68 @@
+const entity = {
+  "type": "object",
+  "description": "管理员",
+  "properties": {
+    "id": {
+      "description": "ID",
+      "$ref": "#/components/schemas/ID"
+    },
+    "name": {
+      "type": "string",
+      "description": "名字",
+      "x-mock": "@word"
+    },
+    "cname": {
+      "type": "string",
+      "description": "中文名",
+      "x-mock": "@cname"
+    },
+    "password": {
+      "type": "string",
+      "description": "密码",
+      "x-mock": ""
+    },
+    "status": {
+      "type": "integer",
+      "description": "用户状态",
+      "enum": [
+        0,
+        1,
+        2
+      ],
+      "x-enum": [
+        {
+          "value": 0,
+          "label": "允许"
+        },
+        {
+          "value": 1,
+          "label": "禁止"
+        },
+        {
+          "value": 2,
+          "label": "锁定"
+        }
+      ],
+      "x-mock": "0"
+    },
+    "creator": {
+      "description": "创建者",
+      "x-$ref": "#/components/schemas/Admin",
+      "$ref": "#/components/schemas/ID"
+    },
+    "createAt": {
+      "description": "创建于",
+      "type": "string",
+      "format": "date-time",
+      "x-mock": "@datetime"
+    },
+    "updateAt": {
+      "type": "string",
+      "description": "更新于",
+      "format": "date-time",
+      "x-mock": "@datetime"
+    }
+  }
+};
+
+export default entity;

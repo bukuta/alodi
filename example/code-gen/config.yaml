@@ -1,0 +1,5 @@
+paths:
+  defines: temp/src/services/defines
+  domains: temp/src/services/domains
+  stores: temp/src
+  pages: temp/src/views

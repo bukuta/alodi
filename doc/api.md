@@ -1,4 +1,4 @@
-
+# alodi
 ```bash
-heimdallr ./dist/index.json
+alodi ./dist/index.json
 ```

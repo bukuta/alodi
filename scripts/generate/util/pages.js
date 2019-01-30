@@ -3,6 +3,7 @@ const path = require('path');
 const fse = require('fs-extra');
 const _ = require('lodash');
 _.templateSettings.interpolate = /<%=([\s\S]+?)%>/g;
+const helpers = require('./helper.js');
 
 
 async function getTemplate(name) {
@@ -31,6 +32,7 @@ async function init() {
     list: await getTemplate('pages/index.ejs'),
     picker: await getTemplate('pages/picker/index.ejs'),
     detail: await getTemplate('pages/detail/index.ejs'),
+    creator: await getTemplate('pages/detail/creator.ejs'),
   };
 }
 init();
@@ -76,6 +78,7 @@ async function run({outputdir, root, options}) {
   let data = {
     fields,
     schema,
+    boneData:helpers.boneData(schema),
     modelName,
     storeName: modelName.toLowerCase(),
     filter,
@@ -83,11 +86,20 @@ async function run({outputdir, root, options}) {
     actions,
     enums,
   };
+  //debug(templates[type]);
+
+  debug('render.data',data);
 
   let r = templates[type](data);
+
+  //r = r.split('\n').filter(line=>line.trim().length>0).join('\n');
+  r = helpers.format(r,'.vue');
+
+
   let typefile = path.join(outputdir, 'pages', modelName.toLowerCase(), ({
-      list: 'index',
+      'list': 'index',
       'detail': 'detail/index',
+      'creator': 'detail/creator',
       'picker': 'picker/index'
     })[type] + '.vue');
 
