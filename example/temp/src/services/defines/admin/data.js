@@ -1,12 +1,12 @@
 const data = {
-  "id": 62914,
-  "name": "ynbwod",
-  "cname": "卢芳",
+  "id": 26845,
+  "name": "lhjojsqm",
+  "cname": "杨强",
   "password": "",
   "status": "0",
-  "creator": 13101,
-  "createAt": "1987-03-29 09:21:22",
-  "updateAt": "1995-10-24 06:06:14"
+  "creator": 90789,
+  "createAt": "1985-03-16 18:52:36",
+  "updateAt": "1989-02-15 04:19:57"
 };
 
 export default data;

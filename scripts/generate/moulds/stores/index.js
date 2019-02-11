@@ -5,16 +5,16 @@ const _ = require('lodash');
 
 
 async function getTemplate(name){
-  let templateContent = await fse.readFile(path.join(__dirname, '../templates/'+name),'utf-8');
+  let templateContent = await fse.readFile(path.join(__dirname, './templates/'+name),'utf-8');
   let template = _.template(templateContent)
   return template;
 }
 
-async function run({outputdir,root,models}) {
+async function run({outputDir,root,models}) {
   debug('run');
   let templates = {
-    list:await getTemplate('stores/list.tpl'),
-    detail:await getTemplate('stores/detail.tpl'),
+    list:await getTemplate('list.tpl'),
+    detail:await getTemplate('detail.tpl'),
   };
 
   Object.entries(models).forEach(async ([modelName,types])=>{
@@ -40,7 +40,7 @@ async function run({outputdir,root,models}) {
     };
 
       let r = templates[type](data);
-      let typefile = path.join(outputdir,'stores', modelName.toLowerCase()+(type=='detail'?'.detail':'')+'.js');
+      let typefile = path.join(outputDir,'stores', modelName.toLowerCase()+(type=='detail'?'.detail':'')+'.js');
       await fse.ensureFile(typefile);
       fse.writeFile(typefile,r);
     });

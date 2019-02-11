@@ -3,11 +3,10 @@ const path = require('path');
 const fse = require('fs-extra');
 const _ = require('lodash');
 _.templateSettings.interpolate = /<%=([\s\S]+?)%>/g;
-const helpers = require('./helper.js');
 
 
 async function getTemplate(name) {
-  let templateContent = await fse.readFile(path.join(__dirname, '../templates/' + name), 'utf-8');
+  let templateContent = await fse.readFile(path.join(__dirname, './templates/' + name), 'utf-8');
   let template = _.template(templateContent)
   return template;
 }
@@ -29,25 +28,27 @@ const defaults = {
 let templates;
 async function init() {
   templates = {
-    list: await getTemplate('pages/index.ejs'),
-    picker: await getTemplate('pages/picker/index.ejs'),
-    detail: await getTemplate('pages/detail/index.ejs'),
-    creator: await getTemplate('pages/detail/creator.ejs'),
+    list: await getTemplate('index.ejs'),
+    picker: await getTemplate('picker/index.ejs'),
+    detail: await getTemplate('detail/index.ejs'),
+    creator: await getTemplate('detail/creator.ejs'),
   };
 }
 init();
 
-async function run({outputdir, root, options}) {
-  debug('run');
-  let {modelName, type, ...option} = options;
+async function run({outputDir,  root,models, options}) {
+  debug('run',options);
+  let modelName = Object.keys(models)[0];
+  let {type, ...option} = options;
 
   let schema = root.components.schemas[modelName];
 
   debug('pagetype:', type);
-  let fields,
-    filter,
-    pagination;
+  let fields;
+  let filter;
+  let pagination;
   let actions = {};
+
   fields = _.get(options, 'fields', schema.properties);
   filter = _.get(options, 'filter', defaults.filter);
   pagination = _.get(options, 'pagination', defaults.pagination);
@@ -78,7 +79,7 @@ async function run({outputdir, root, options}) {
   let data = {
     fields,
     schema,
-    boneData:helpers.boneData(schema),
+    boneData:options.helpers.boneData(schema),
     modelName,
     storeName: modelName.toLowerCase(),
     filter,
@@ -93,10 +94,10 @@ async function run({outputdir, root, options}) {
   let r = templates[type](data);
 
   //r = r.split('\n').filter(line=>line.trim().length>0).join('\n');
-  r = helpers.format(r,'.vue');
+  r = options.helpers.format(r,'.vue');
 
 
-  let typefile = path.join(outputdir, 'pages', modelName.toLowerCase(), ({
+  let typefile = path.join(outputDir, 'pages', modelName.toLowerCase(), ({
       'list': 'index',
       'detail': 'detail/index',
       'creator': 'detail/creator',

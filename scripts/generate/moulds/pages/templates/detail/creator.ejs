@@ -1,0 +1,59 @@
+<template>
+  <el-form ref="form">
+    <% for(var name of Object.keys(schema.properties)){
+    let property = schema.properties[name];
+
+    if( property['enum'] && property['x-enum'] ){%>
+    <el-form-item label="<%=property.description%>">
+      <el-select v-model="form.<%=name%>" placeholder="<%=property.description%>"><%for(let item of property['x-enum']){%>
+        <el-option <%=property.type!='string'?':':''%>value="<%=item.value%>" label="<%=item.label%>"/><%}%>
+      </el-select>
+    </el-form-item>
+    <%}else{%>
+    <el-form-item label="<%=property.description%>">
+      <el-input v-model="form.<%=name%>" placeholder="<%=property.description%>"></el-input>
+    </el-form-item>
+    <%}%>
+    <%}%>
+  </el-form>
+</template>
+
+<script>
+
+const defaultForm = <%=JSON.stringify(boneData,0,2)%>;
+
+export default {
+  name: '<%=_.lowerCase(modelName)%>-creator',
+  props:['detail'],
+
+  data(){
+    let form = {...defaultForm, ...this.detail};
+    return {
+      form,
+    };
+  },
+
+  computed:{
+  },
+
+  watch:{
+    detail(){
+      this.form = {...this.form,...this.detail};
+    },
+  },
+
+  methods:{
+    getValue(){
+      return {...this.form};
+    },
+
+    validate(){
+      return this.$refs.form.validate();
+    },
+    resetFields(){
+      return this.$refs.form.resetFields();
+    },
+
+  },
+};
+</script>

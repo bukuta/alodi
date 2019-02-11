@@ -27,23 +27,17 @@
 //
 //
 
-const util = require('util');
 const path = require('path');
-const fs = require('fs');
 const fse = require('fs-extra');
 const Mock = require('mockjs');
 
-var mkdirp = util.promisify(require('mkdirp'));
 const _ = require('lodash');
 const debug = require('debug')('generator');
 const debug_todo = require('debug')('generator:TODO');
 
 const debug_error = require('debug')('error');
-const debug5= require('debug')('collection');
-const debug6= require('debug')('collection');
-
-const readFile = util.promisify(fs.readFile);
-const writeFile = util.promisify(fs.writeFile);
+const debug5 = require('debug')('collection');
+const debug6 = require('debug')('collection');
 
 function collectMocksFromEntity(schema, root) {
   debug6(schema);
@@ -144,87 +138,158 @@ function collectMocksFromResponse(response, root) {
   return m;
 }
 
-async function getTemplate(name){
-  let templateContent = await readFile(path.join(__dirname, '../templates/defines/'+name+'.ejs'),'utf-8');
+async function getTemplate(name) {
+  let templateContent = await fse.readFile(path.join(__dirname, './templates/' + name + '.ejs'), 'utf-8');
   let template = _.template(templateContent)
   return template;
 }
 
-function collectShapes(schema){
+function collectShapes(schema) {
   // schema.properties.xxx.x-gen-shape.x-zzz
   let names = Object.keys(schema.properties);
-  let scenes={};
-  let nameShapes = names.map(name=>{
-    return {name,shapes:schema.properties[name]['x-gen-shape']};
-  }).filter(item=>!!item.shapes).map(item=>{
-    Object.keys(item.shapes).forEach(scenename=>{
-      scenes[scenename]=scenes[scenename]||[];
-      scenes[scenename].push({name:item.name,render:item.shapes[scenename]});
+  let scenes = {};
+  let nameShapes = names.map(name => {
+    return {
+      name,
+      shapes: schema.properties[name]['x-gen-shape']
+    };
+  }).filter(item => !!item.shapes).map(item => {
+    Object.keys(item.shapes).forEach(scenename => {
+      scenes[scenename] = scenes[scenename] || [];
+      scenes[scenename].push({
+        name: item.name,
+        render: item.shapes[scenename]
+      });
     })
   });
-  let renameScenes={};
-  Object.keys(scenes).forEach(name=>{
-    renameScenes[name.replace('x-','')]=scenes[name];
+  let renameScenes = {};
+  Object.keys(scenes).forEach(name => {
+    renameScenes[name.replace('x-', '')] = scenes[name];
   });
   debug(renameScenes);
   return renameScenes;
 }
 
-async function genEntities({outputdir,root, models}) {
+async function genEntities({outputDir, root, models, options}) {
   let templates = {
-    index:await getTemplate('index'),
-    entity:await getTemplate('entity'),
-    shape:await getTemplate('shape'),
-    data:await getTemplate('data'),
-    mock:await getTemplate('mock'),
+    index: await getTemplate('index'),
+    creator: await getTemplate('creator'),
+    entity: await getTemplate('entity'),
+    //shape:await getTemplate('shape'),
+    data: await getTemplate('data'),
+    mock: await getTemplate('mock'),
   };
 
   //let content = await readFile(specFile,'utf-8');
   //let root = JSON.parse(content);
   let schemas = root.components.schemas;
   let names = Object.keys(models);
-  for(var name of names){
+  let modelName = Object.keys(models)[0];
+
+
+  for (var name of names) {
     let schema = schemas[name];
-    if(schema['x-gen-skip']){
-      debug('x-gen-skip',name);
+    const defaults = {
+      filter: {
+      },
+      actions: {
+        create: 1,
+        detail: 1,
+        delete: 1,
+        edit: 1,
+      },
+      pagination: {
+        'page-sizes': [10, 20, 50],
+        layout: 'total, sizes, prev, pager, next, jumper',
+      },
+    };
+
+    debug(name, schema);
+    let enums = [];
+    Object.entries(schema.properties).filter(([name, item]) => {
+      return !!item.enum
+    }).forEach(([name, item]) => {
+      let xenum = item['x-enum'] || [];
+      if (!xenum.length) {
+        xenum = item.enum.map(a => {
+          return {
+            value: a,
+            label: a
+          }
+        });
+      }
+      let obj = {
+        name,
+        enum: item.enum,
+        'x-enum': xenum
+      };
+      enums.push(obj);
+    });
+
+
+    if (schema['x-gen-skip']) {
+      debug('x-gen-skip', name);
       continue;
     }
     name = name.toLowerCase();
 
-    let entityfile = path.join(outputdir, name,'entity.js');
+    let entityfile = path.join(outputDir, name, 'entity.js');
     await fse.ensureFile(entityfile)
-    await writeFile(entityfile,templates.entity({entity:schema}));
+    await fse.writeFile(entityfile, templates.entity({
+      entity: schema
+    }));
 
-    let mockfile = path.join(outputdir, name,'mock.js');
-    let mockdatafile = path.join(outputdir, name,'data.js');
+    let creatorfile = path.join(outputDir, name, 'creator.vue');
+    await fse.ensureFile(creatorfile)
 
-    let shapes = collectShapes(schema);
+    let data = {
+      fields: _.get(options, 'fields', schema.properties),
+      schema,
+      boneData: options.helpers.boneData(schema),
+      modelName,
+      storeName: modelName.toLowerCase(),
+      filter: _.get(options, 'filter', defaults.filter),
+      enums,
+    };
+    //debug(templates[type]);
+    await fse.writeFile(creatorfile, templates.creator( data));
 
-    for(var scenename in shapes){
-      let shapefile = path.join(outputdir, name,`shapes/${scenename}.js`);
-      await fse.ensureFile(shapefile)
-      await writeFile(shapefile,templates.shape({shape:shapes[scenename]}));
-    }
+    let mockfile = path.join(outputDir, name, 'mock.js');
+    let mockdatafile = path.join(outputDir, name, 'data.js');
 
-    let mock= collectMocksFromEntity(schema,root);
+    //let shapes = collectShapes(schema);
+
+    //for(var scenename in shapes){
+    //let shapefile = path.join(outputDir, name,`shapes/${scenename}.js`);
+    //await fse.ensureFile(shapefile)
+    //await fse.writeFile(shapefile,templates.shape({shape:shapes[scenename]}));
+    //}
+
+    let mock = collectMocksFromEntity(schema, root);
 
     await fse.ensureFile(mockfile)
-    await writeFile(mockfile,templates.mock({data:mock.mock}));
+    await fse.writeFile(mockfile, templates.mock({
+      data: mock.mock
+    }));
 
     await fse.ensureFile(mockdatafile)
     let mockdata = Mock.mock(mock.mock);
-    await writeFile(mockdatafile,templates.data({data:mockdata}));
+    await fse.writeFile(mockdatafile, templates.data({
+      data: mockdata
+    }));
 
-    let indexfile = path.join(outputdir, name,'index.js');
+    let indexfile = path.join(outputDir, name, 'index.js');
     debug(indexfile);
     await fse.ensureFile(indexfile)
-    await writeFile(indexfile,templates.index({shapes:Object.keys(shapes)}));
+    await fse.writeFile(indexfile, templates.index({
+      shapes: []
+    }));
 
     debug(entityfile);
   }
 }
 //process.on('warning',function(e){
-  //debug(e);
+//debug(e);
 //});
 
 

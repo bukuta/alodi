@@ -8,12 +8,19 @@ const _ = require('lodash');
 const inquirer = require('inquirer');
 const {Observable} = require('rxjs');
 
+const helpers = require('./util/helper.js');
 
-const genDefines = require('./util/defines.js').run;
-const genDomains = require('./util/domains.js').run;
-const genStores = require('./util/stores.js').run;
-const genPages = require('./util/pages.js').run;
 
+const genDefines = require('./moulds/defines').run;
+const genDomains = require('./moulds/domains').run;
+const genStores = require('./moulds/stores').run;
+const genPages = require('./moulds/pages').run;
+
+
+function getGenator(name){
+  let r = require('./moulds/'+name).run;
+  return r;
+}
 
 inquirer.registerPrompt('fuzzypath', require('inquirer-fuzzy-path'))
 
@@ -31,88 +38,50 @@ async function run() {
 
 
   for (let [name, item] of Object.entries(project)) {
-    if (_.has(item, 'defines')) {
-      let definesDir = path.join(cwd, config.paths.defines);
-      await fse.ensureDir(definesDir);
-      await genDefines({
-        root: root,
-        outputdir: definesDir,
-        models: {
-          [name]: name
-        }
-      });
-    }
-    if (_.has(item, 'domains')) {
-      let domainsDir = path.join(cwd, config.paths.domains);
-      await fse.ensureDir(domainsDir);
-      await genDomains({
-        root: root,
-        outputdir: domainsDir,
-        models: {
-          [name]: {collection:1,model:1}
-        }
-      });
-    }
-    if (_.has(item, 'pages')) {
-      //let storesDir = path.join(cwd, config.paths.stores);
-      //await fse.ensureDir(storesDir);
-      //await genStores({
-        //root: root,
-        //outputdir: storesDir,
-        //models: {[name]:name},
-      //});
+    for(let mouldName of Object.keys(item)){
+      let outputDir = path.join(cwd, config.paths[mouldName]);
+      await fse.ensureDir(outputDir);
 
-      let pagesDir = path.join(cwd, config.paths.pages);
-      await fse.ensureDir(pagesDir);
-      item.pages.forEach(async(page)=>{
-        await genPages({
-          root: root,
-          outputdir: pagesDir,
-          options: {modelName:name,...page}
+      let options = item[mouldName];
+      if(!Array.isArray(options)){
+        options = [options];
+      }
+
+      for(let option  of  options){
+        let genterator = getGenator(mouldName);
+        await genterator({
+          root,
+          outputDir,
+          models: {
+            [name]:name,
+          },
+          options: {...option, helpers},
         });
-      });
+      }
 
+      //if (_.has(item, 'domains')) {
+      //await genDomains({
+      //root: root,
+      //outputdir: domainsDir,
+      //models: {
+      //[name]: {collection:1,model:1}
+      //}
+      //});
+      //}
+
+      //if (_.has(item, 'pages')) {
+      //let pagesDir = path.join(cwd, config.paths.pages);
+      //await fse.ensureDir(pagesDir);
+
+      //item.pages.forEach(async(page)=>{
+      //await genPages({
+      //root: root,
+      //outputdir: pagesDir,
+      //options: {modelName:name,...page, helpers}
+      //});
+      //});
+      //}
     }
-  }
-
-  return;
-
-  if (Object.keys(project.defines || {}).length) {
-    let definesDir = path.join(cwd, config.paths.defines);
-    await fse.ensureDir(definesDir);
-    await genDefines({
-      root: root,
-      outputdir: definesDir,
-      models: project.defines
-    });
-  }
-
-  if (Object.keys(project.domains || {}).length) {
-    let domainsDir = path.join(cwd, config.paths.domains);
-    await fse.ensureDir(domainsDir);
-    await genDomains({
-      root: root,
-      outputdir: domainsDir,
-      models: project.domains
-    });
-  }
-  if (Object.keys(project.stores || {}).length) {
-    let storesDir = path.join(cwd, config.paths.stores);
-    await fse.ensureDir(storesDir);
-    await genStores({
-      root: root,
-      outputdir: storesDir,
-      models: project.stores
-    });
-  }
-  if (Object.keys(project.pages || {}).length) {
-    let pagesDir = path.join(cwd, config.paths.pages);
-    await fse.ensureDir(pagesDir);
-    await genPages({
-      root: root,
-      outputdir: pagesDir,
-      models: project.pages
-    });
   }
 }
 

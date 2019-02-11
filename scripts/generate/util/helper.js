@@ -28,6 +28,7 @@ const boneMock = {
   string: '',
   integer: 0,
 };
+
 function boneData(schema){
   let bone = {};
   for(let [name,define] of Object.entries(schema.properties)){

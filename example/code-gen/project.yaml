@@ -1,57 +1,65 @@
 Admin:
   defines:
   domains:
-    collection:
-      path: /admins
-    model:
-      path: /admins/:id
-      rpcs:
-        - login
-        - logout
-  pages:
-    - name: page-admins
-      type: list
-      route: /admins
-      path: /admins
-
-      fields:
-        name:
-        cname:
-        phone:
-        department:
-        status:
-
-      filter:
-        name:
-        cname:
-        status:
-
-      pagination:
-        page-sizes: [10, 20, 50]
-        layout: total, sizes, prev, pager, next, jumper
-
-      actions:
-        create: 1
-        edit: 1
-        delete: 1
-        detail: 1
-
-    #- name: admins-picker
-      #type: picker
+    - collection:
+        path: /admins
+        lang-options:
+          fileSuffix: Collection
+    - model:
+        lang: dart
+        path: /admins/:id
+    - model:
+        lang: java
+        lang-options:
+          package: com.bukuta
+        path: /admins/:id
+        rpcs:
+          - login
+          - logout
+  #pages:
+    #- name: page-admins
+      #type: list
+      #route: /admins
       #path: /admins
+
+      #fields:
+        #name:
+        #cname:
+        #phone:
+        #department:
+        #status:
+
       #filter:
         #name:
+        #cname:
+        #status:
+
       #pagination:
         #page-sizes: [10, 20, 50]
         #layout: total, sizes, prev, pager, next, jumper
 
-    - name: admin-detail
-      type: detail
-      route: /admins/:adminId
-      path: /admins/:adminId
+      #actions:
+        #create: 1
+        #edit: 1
+        #delete: 1
+        #detail: 1
 
-    - name: admin-creator
-      type: creator
-      route: /admins/:adminId
-      path: /admins/:adminId
+    ##- name: admins-picker
+      ##type: picker
+      ##path: /admins
+      ##filter:
+        ##name:
+      ##pagination:
+        ##page-sizes: [10, 20, 50]
+        ##layout: total, sizes, prev, pager, next, jumper
+
+    #- name: admin-detail
+      #type: detail
+      #route: /admins/:adminId
+      #path: /admins/:adminId
+
+    #- name: admin-creator
+      #type: creator
+      #route: /admins/:adminId
+      #path: /admins/:adminId
 

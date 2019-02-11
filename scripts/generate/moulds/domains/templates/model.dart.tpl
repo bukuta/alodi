@@ -1,11 +1,9 @@
 //
 //  generate by Alodi <%=new Date()%>
 //
+<% var types = {'string':'String', 'number':'int','bool':'bool','integer':'int'}; %>
 
 // import "./yard/ss.dart";
-<%
-var types = {'string':'String', 'number':'int','bool':'bool','integer':'int'};
-%>
 
 class <%=modelName%> /*extends SS*/{
 <%for(var name of Object.keys(model.properties)){ %>
